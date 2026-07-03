@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.eclipse/
+bin/
+.classpath
+.project
+.settings/
+
+# Local mod jars (Tensura / ManasCore are All Rights Reserved - do not commit them)
+libs/*.jar
+
+# Dev runtime files
+run/logs/
+run/downloads/
+run/crash-reports/
+run/debug/
+
+# Misc
+*.log
+repo/
