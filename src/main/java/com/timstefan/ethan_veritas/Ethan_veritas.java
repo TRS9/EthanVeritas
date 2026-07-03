@@ -1,6 +1,8 @@
 package com.timstefan.ethan_veritas;
 
 import com.mojang.logging.LogUtils;
+import com.timstefan.ethan_veritas.registry.race.AllRaces;
+import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -82,6 +84,11 @@ public class Ethan_veritas {
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+
+        // Bind our Architectury-based race/skill DeferredRegisters to the NeoForge registry events.
+        // Must run during mod construction, unlike the NeoForge-native BLOCKS/ITEMS registers above.
+        AllRaces.register();
+        AllSkills.register();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
