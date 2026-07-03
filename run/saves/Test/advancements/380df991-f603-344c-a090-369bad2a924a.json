@@ -17,5 +17,23 @@
     },
     "done": true
   },
+  "tensura:fast_learner": {
+    "criteria": {
+      "skill": "2026-07-03 18:18:03 +0200"
+    },
+    "done": true
+  },
+  "tensura:real_adventure": {
+    "criteria": {
+      "ability": "2026-07-03 18:18:03 +0200"
+    },
+    "done": true
+  },
+  "tensura:reincarnated": {
+    "criteria": {
+      "reincarnation": "2026-07-03 18:18:03 +0200"
+    },
+    "done": true
+  },
   "DataVersion": 3955
 }
