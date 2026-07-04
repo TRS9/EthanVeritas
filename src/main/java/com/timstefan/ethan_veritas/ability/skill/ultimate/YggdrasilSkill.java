@@ -37,13 +37,13 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
  * <p>
  * Active modes:
  * mode 0 - Conceptual Emission [Press]: fused-element burst at the point in your gaze. 50K MP.
- * mode 1 - Primal Tempest [Press]: a storm of all elements raging around the wielder;
- * press again to disperse it. Range, duration and damage grow with mastery. 100K MP.
+ * mode 1 - Primal Tempest [Hold]: a storm of all elements raging around the wielder
+ * for as long as the key is held (up to 20s, 30s mastered); releasing disperses it.
+ * Range, duration and damage grow with mastery. 5K MP per second.
  */
 public class YggdrasilSkill extends Skill {
     private static final int MODE_CONCEPTUAL_EMISSION = 0;
     private static final int MODE_PRIMAL_TEMPEST = 1;
-    private static final String TEMPEST_END = "TempestEndTime";
 
     public YggdrasilSkill() {
         super(SkillType.ULTIMATE);
@@ -115,90 +115,86 @@ public class YggdrasilSkill extends Skill {
 
     @Override
     public boolean canTick(ManasSkillInstance instance, LivingEntity entity) {
-        // Tick while the tempest tag EXISTS (not only while unexpired), so the
-        // end-of-storm cleanup always runs even with the passive toggle off -
-        // otherwise the tick gate cuts out exactly at expiry and the state goes stale.
-        return instance.isToggled() || hasTempestState(instance);
+        return instance.isToggled();
     }
 
     @Override
     public void onTick(ManasSkillInstance instance, LivingEntity entity) {
+        // NOTE: ManasCore only calls onTick every 100 game ticks (5s) - fine for
+        // these slow passives, useless for anything continuous (see onHeld below).
         boolean mastered = instance.isMastered(entity);
 
-        if (instance.isToggled()) {
-            // Mastery grows with active use, like the base mod's Thought Acceleration.
-            CompoundTag tag = instance.getOrCreateTag();
-            int time = tag.getInt("ActiveTime");
-            if (time % 600 == 0) {
-                instance.addMasteryPoint(entity);
-            }
-            tag.putInt("ActiveTime", time + 1);
-
-            if (time % 40 == 0) {
-                // Natural Resistance at ultimate scale: 40% (60% mastered) plus immunity to fire.
-                entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, mastered ? 2 : 1, true, false, true));
-                entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 60, 0, true, false, true));
-            }
-
-            // Sovereign's Dominion: Inspiration for everyone fighting under this aura.
-            if (time % 20 == 0) {
-                double radius = mastered ? 20.0D : 10.0D;
-                for (LivingEntity ally : entity.level().getEntitiesOfClass(LivingEntity.class, entity.getBoundingBox().inflate(radius),
-                        other -> other != entity && other.isAlliedTo(entity))) {
-                    ally.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.INSPIRATION),
-                            60, mastered ? 3 : 1, true, false, true));
-                }
-            }
+        // Mastery grows with active use, like the base mod's Thought Acceleration.
+        CompoundTag tag = instance.getOrCreateTag();
+        int time = tag.getInt("ActiveTime");
+        if (time % 6 == 0) {
+            instance.addMasteryPoint(entity);
         }
+        tag.putInt("ActiveTime", time + 1);
 
-        tickTempest(instance, entity, mastered);
+        // Natural Resistance at ultimate scale: 40% (60% mastered) plus immunity to fire.
+        // Durations bridge the 5s gap between onTick invocations.
+        entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 120, mastered ? 2 : 1, true, false, true));
+        entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 120, 0, true, false, true));
+
+        // Sovereign's Dominion: Inspiration for everyone fighting under this aura.
+        double radius = mastered ? 20.0D : 10.0D;
+        for (LivingEntity ally : entity.level().getEntitiesOfClass(LivingEntity.class, entity.getBoundingBox().inflate(radius),
+                other -> other != entity && other.isAlliedTo(entity))) {
+            ally.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.INSPIRATION),
+                    120, mastered ? 3 : 1, true, false, true));
+        }
     }
 
-    // ----- Primal Tempest -----
+    // ----- Primal Tempest (HELD, the Mortal Fear / Destroyer Haki pattern) -----
+    // onHeld runs every single game tick while the ability key is held, unlike
+    // onTick; releasing the key ends the storm and starts the cooldown.
 
-    private static boolean hasTempestState(ManasSkillInstance instance) {
-        CompoundTag tag = instance.getTag();
-        return tag != null && tag.contains(TEMPEST_END);
+    @Override
+    public boolean shouldTriggerReleaseOnHeldInterrupt(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
+        return mode == MODE_PRIMAL_TEMPEST;
     }
 
-    private static boolean isTempestRaging(ManasSkillInstance instance, LivingEntity entity) {
-        CompoundTag tag = instance.getTag();
-        return tag != null && tag.contains(TEMPEST_END) && tag.getLong(TEMPEST_END) > entity.level().getGameTime();
+    @Override
+    public int getMaxHeldTime(ManasSkillInstance instance, LivingEntity entity) {
+        return instance.isMastered(entity) ? 600 : 400; // 30s mastered, 20s not
     }
 
-    private void tickTempest(ManasSkillInstance instance, LivingEntity entity, boolean mastered) {
-        CompoundTag tag = instance.getTag();
-        if (tag == null || !tag.contains(TEMPEST_END)) return;
-        long now = entity.level().getGameTime();
-        if (tag.getLong(TEMPEST_END) <= now) {
-            endTempest(instance, entity);
-            return;
+    @Override
+    public boolean onHeld(ManasSkillInstance instance, LivingEntity entity, int heldTicks, int mode) {
+        if (mode != MODE_PRIMAL_TEMPEST) return false;
+        if (!(entity.level() instanceof ServerLevel serverLevel)) return false;
+        boolean mastered = instance.isMastered(entity);
+        if (heldTicks >= getMaxHeldTime(instance, entity)) return false;
+
+        // Upkeep drained once a second (getMagiculeCost for this mode), Mortal Fear style.
+        if (heldTicks % 20 == 0 && EnergyHelper.isOutOfEnergy(entity, instance, mode)) return false;
+        if (heldTicks > 0 && heldTicks % 100 == 0) {
+            instance.addMasteryPoint(entity);
         }
 
         double radius = mastered ? 10.0D : 6.0D;
 
         // All elements raging at once: a rising spiral of flame, frost, lightning,
         // wind and light circling the wielder.
-        if (entity.level() instanceof ServerLevel serverLevel) {
-            for (int arm = 0; arm < 6; arm++) {
-                double angle = Math.toRadians((now * 14 + arm * 60) % 360);
-                double armRadius = 1.5D + (arm % 3) * (radius - 1.5D) / 3.0D;
-                double x = entity.getX() + Math.cos(angle) * armRadius;
-                double z = entity.getZ() + Math.sin(angle) * armRadius;
-                double y = entity.getY() + 0.3D + arm * 0.7D;
-                SimpleParticleType type = switch (arm % 5) {
-                    case 0 -> ParticleTypes.FLAME;
-                    case 1 -> ParticleTypes.SNOWFLAKE;
-                    case 2 -> ParticleTypes.ELECTRIC_SPARK;
-                    case 3 -> ParticleTypes.CLOUD;
-                    default -> ParticleTypes.END_ROD;
-                };
-                serverLevel.sendParticles(type, x, y, z, 3, 0.15D, 0.15D, 0.15D, 0.02D);
-            }
+        for (int arm = 0; arm < 6; arm++) {
+            double angle = Math.toRadians((heldTicks * 14 + arm * 60) % 360);
+            double armRadius = 1.5D + (arm % 3) * (radius - 1.5D) / 3.0D;
+            double x = entity.getX() + Math.cos(angle) * armRadius;
+            double z = entity.getZ() + Math.sin(angle) * armRadius;
+            double y = entity.getY() + 0.3D + arm * 0.7D;
+            SimpleParticleType type = switch (arm % 5) {
+                case 0 -> ParticleTypes.FLAME;
+                case 1 -> ParticleTypes.SNOWFLAKE;
+                case 2 -> ParticleTypes.ELECTRIC_SPARK;
+                case 3 -> ParticleTypes.CLOUD;
+                default -> ParticleTypes.END_ROD;
+            };
+            serverLevel.sendParticles(type, x, y, z, 3, 0.15D, 0.15D, 0.15D, 0.02D);
         }
 
         // The storm bites twice a second: fused-element damage plus a deep chill.
-        if (now % 10 == 0) {
+        if (heldTicks % 10 == 0) {
             float damage = mastered ? 40.0F : 20.0F;
             for (LivingEntity victim : entity.level().getEntitiesOfClass(LivingEntity.class,
                     entity.getBoundingBox().inflate(radius),
@@ -209,13 +205,14 @@ public class YggdrasilSkill extends Skill {
                         60, mastered ? 1 : 0, false, true));
             }
         }
+        return true;
     }
 
-    private void endTempest(ManasSkillInstance instance, LivingEntity entity) {
-        CompoundTag tag = instance.getOrCreateTag();
-        tag.remove(TEMPEST_END);
-        instance.markDirty();
-        instance.setCoolDown(200, MODE_PRIMAL_TEMPEST); // TESTING: 10s per request; tune for release
+    @Override
+    public void onRelease(ManasSkillInstance instance, LivingEntity entity, int heldTicks, int keyNumber, int mode) {
+        if (mode == MODE_PRIMAL_TEMPEST && heldTicks > 0) {
+            instance.setCoolDown(10, mode); // TESTING: cooldown is in SECONDS; tune for release
+        }
     }
 
     // ----- Active modes -----
@@ -243,7 +240,7 @@ public class YggdrasilSkill extends Skill {
     public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
         return switch (mode) {
             case MODE_CONCEPTUAL_EMISSION -> 50_000.0D;
-            case MODE_PRIMAL_TEMPEST -> 100_000.0D;
+            case MODE_PRIMAL_TEMPEST -> 5_000.0D; // drained per second while the storm is held
             default -> 0.0D;
         };
     }
@@ -282,21 +279,9 @@ public class YggdrasilSkill extends Skill {
                     serverLevel.sendParticles(ParticleTypes.CLOUD, center.x(), center.y(), center.z(), 40, radius * 0.5D, radius * 0.3D, radius * 0.5D, 0.2D);
                 }
                 instance.addMasteryPoint(entity);
-                instance.setCoolDown(1, mode); // TESTING: was mastered ? 60 : 100
+                instance.setCoolDown(1, mode); // TESTING: cooldown is in SECONDS; tune for release
             }
-            case MODE_PRIMAL_TEMPEST -> {
-                // Press while raging: disperse the storm (cooldown starts then).
-                if (isTempestRaging(instance, entity)) {
-                    endTempest(instance, entity);
-                    return;
-                }
-                if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
-                long duration = mastered ? 600L : 400L; // 30s mastered, 20s not
-                instance.getOrCreateTag().putLong(TEMPEST_END, entity.level().getGameTime() + duration);
-                instance.markDirty();
-                instance.addMasteryPoint(entity);
-                // No cooldown yet - it starts when the storm ends, so the cancel press works.
-            }
+            // MODE_PRIMAL_TEMPEST is a held ability: see onHeld/onRelease.
             default -> {
             }
         }

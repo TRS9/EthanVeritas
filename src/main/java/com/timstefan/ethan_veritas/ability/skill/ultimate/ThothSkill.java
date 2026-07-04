@@ -15,11 +15,9 @@ import io.github.manasmods.tensura.registry.skill.UniqueSkills;
 import io.github.manasmods.tensura.registry.block.TensuraBlocks;
 import io.github.manasmods.tensura.registry.sound.TensuraSoundEvents;
 import io.github.manasmods.tensura.util.EnergyHelper;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
@@ -245,15 +243,6 @@ public class ThothSkill extends Skill {
             found++;
             if (found <= 64) {
                 OreRevealHandler.spawnMarker(serverLevel, pos.immutable(), 600L);
-            }
-        }
-        if (entity instanceof Player player) {
-            if (found > 0) {
-                player.displayClientMessage(Component.translatable("ethan_veritas.skill.thoth.ore_sense", found)
-                        .withStyle(ChatFormatting.AQUA), true);
-            } else {
-                player.displayClientMessage(Component.translatable("ethan_veritas.skill.thoth.ore_sense_none")
-                        .withStyle(ChatFormatting.GRAY), true);
             }
         }
     }
