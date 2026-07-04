@@ -85,10 +85,10 @@ public class Ethan_veritas {
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
 
-        // Bind our Architectury-based race/skill DeferredRegisters to the NeoForge registry events.
-        // Must run during mod construction, unlike the NeoForge-native BLOCKS/ITEMS registers above.
-        AllRaces.register();
-        AllSkills.register();
+        // Force AllRaces/AllSkills to class-load now, running their static initializers
+        // (which register directly against ManasCore's own Registrar - see AllSkills for why).
+        AllRaces.init();
+        AllSkills.init();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
