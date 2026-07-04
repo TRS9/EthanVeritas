@@ -4,7 +4,7 @@
   "package": "com.timstefan.ethan_veritas.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "HumanSaintRaceMixin"
+    "ManasRaceInstanceMixin"
   ],
   "injectors": {
     "defaultRequire": 1

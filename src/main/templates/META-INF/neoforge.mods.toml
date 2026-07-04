@@ -86,6 +86,24 @@ type = "required"
 ordering = "AFTER"
 side = "BOTH"
 
+# ManasCore ships its skill/race registries as separate jar-in-jar sub-mods with their
+# own modids. Depending only on "manascore" above does not guarantee those sub-mods
+# construct (and create their custom registries) before we do, since FML orders mod
+# construction per declared dependency, not per parent jar. Without these, our own
+# DeferredRegister.register() calls can run before manascore_skill/manascore_race
+# create the "skills"/"races" registries, crashing with "Registry ... does not exist!".
+[[dependencies."${mod_id}"]]
+modId = "manascore_skill"
+type = "required"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "manascore_race"
+type = "required"
+ordering = "AFTER"
+side = "BOTH"
+
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't
 # stop your mod loading on the server for example.
