@@ -166,6 +166,6 @@ public class YggdrasilSkill extends Skill {
             victim.setRemainingFireTicks(60);
         }
         instance.addMasteryPoint(entity);
-        instance.setCoolDown(mastered ? 60 : 100, mode);
+        instance.setCoolDown(1, mode); // TESTING: was mastered ? 60 : 100
     }
 }

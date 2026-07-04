@@ -19,6 +19,7 @@
   "ethan_veritas.skill.ain": "Information God: Ain",
   "ethan_veritas.skill.ain.description": "The nothing beneath even limitlessness, replacing Ain Soph Aur upon its mastery. Toggle: Omniscient Dominion perceives every hostile existence through any cover. True passive: Absolute Origin re-declares the wielder's own existence when a fatal blow lands. Active: Absolute Erasure unwrites whatever is gazed upon - blocks vanish without trace, and living existences are erased if the wielder's EP exceeds 1.5x theirs, at a magicule price that rises as the gap narrows. Parallel Existence manifests as Body Double, and the Existence Barrier persists as its own skill.",
   "ethan_veritas.skill.mode.ain.absolute_erasure": "Absolute Erasure",
+  "ethan_veritas.skill.ain.erasure_too_heavy": "That existence is too heavy to unwrite - your EP must exceed 1.5x theirs.",
 
   "ethan_veritas.skill.existence_barrier": "Existence Barrier",
   "ethan_veritas.skill.existence_barrier.description": "Multilayer Barrier evolved to the Digital Nature tier: a standing barrier holding ten times the wielder's maximum health, raised and dropped at will. Granted by Information King: Ain Soph Aur and kept forever after.",

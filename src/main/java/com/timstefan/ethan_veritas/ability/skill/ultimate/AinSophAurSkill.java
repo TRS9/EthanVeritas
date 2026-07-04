@@ -135,6 +135,6 @@ public class AinSophAurSkill extends Skill {
         }
         AbilityUtils.removeHarmfulEffects(entity);
         instance.addMasteryPoint(entity);
-        instance.setCoolDown(200, mode);
+        instance.setCoolDown(20, mode); // TESTING: was 200
     }
 }

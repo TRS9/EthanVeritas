@@ -187,7 +187,7 @@ public class ThothSkill extends Skill {
                 target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.SILENCE),
                         mastered ? 320 : 160, 0, false, true));
                 instance.addMasteryPoint(entity);
-                instance.setCoolDown(mastered ? 100 : 160, mode);
+                instance.setCoolDown(1, mode); // TESTING: was mastered ? 100 : 160
             }
             case MODE_UNIVERSAL_DETECT -> {
                 // Radar ping: everything alive within 64 blocks glows through walls for 15s. 10s CD.
@@ -197,7 +197,7 @@ public class ThothSkill extends Skill {
                     revealed.addEffect(new MobEffectInstance(MobEffects.GLOWING, 300, 0, false, false));
                 }
                 instance.addMasteryPoint(entity);
-                instance.setCoolDown(200, mode);
+                instance.setCoolDown(1, mode); // TESTING: was 200
             }
             default -> {
             }

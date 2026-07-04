@@ -1,6 +1,7 @@
 package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
 import com.timstefan.ethan_veritas.ability.AbilityUtils;
+import com.timstefan.ethan_veritas.handler.ErasureDropHandler;
 import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.manascore.skill.api.SkillAPI;
@@ -9,13 +10,14 @@ import io.github.manasmods.tensura.ability.TensuraSkill;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
 import io.github.manasmods.tensura.registry.sound.TensuraSoundEvents;
-import io.github.manasmods.tensura.storage.TensuraStorages;
-import io.github.manasmods.tensura.storage.ep.IExistence;
 import io.github.manasmods.tensura.util.EnergyHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -150,31 +152,50 @@ public class AinSkill extends Skill {
      * Blocks are simply unwritten. A living existence can only be erased while the
      * wielder's EP exceeds 1.5x the target's, and the magicule price rises as that
      * gap narrows: cost = 1.5 * targetEP^2 / ownEP. 300s CD (150s mastered).
+     * <p>
+     * EP is measured with EnergyHelper.getMaxEP (max aura + max magicule - the mod's
+     * actual EP rating), NOT IExistence.getEP(), which returns the current spent-down
+     * energy pools and silently broke the check against bosses.
+     * <p>
+     * Erasing an entity is executed as a real kill with this skill as the damage
+     * source, so death-based rewards (EP gain, souls, awakening triggers) credit the
+     * wielder like any boss kill - but the erased existence leaves nothing behind:
+     * ErasureDropHandler cancels its item and XP drops.
      */
     @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
         if (mode != MODE_ABSOLUTE_ERASURE) return;
         boolean mastered = instance.isMastered(entity);
-        int cooldown = mastered ? 3000 : 6000;
+        int cooldown = 20; // TESTING: was mastered ? 3000 : 6000
 
         LivingEntity target = AbilityUtils.findLookTarget(entity, ERASURE_RANGE);
         if (target != null) {
-            IExistence own = TensuraStorages.getExistenceFrom(entity);
-            IExistence other = TensuraStorages.getExistenceFrom(target);
-            double ownEP = own.getEP();
-            double targetEP = other.getEP();
+            double ownEP = EnergyHelper.getMaxEP(entity);
+            double targetEP = EnergyHelper.getMaxEP(target);
             if (ownEP < targetEP * 1.5D) {
                 // The existence is too heavy to unwrite - no cost, no cooldown.
+                if (entity instanceof Player player) {
+                    player.displayClientMessage(Component.translatable("ethan_veritas.skill.ain.erasure_too_heavy")
+                            .withStyle(ChatFormatting.RED), true);
+                }
                 entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                         (SoundEvent) TensuraSoundEvents.GENERIC_CAST_FAIL.get(), TensuraSkill.ABILITY_SOUND, 1.0F, 1.0F);
                 return;
             }
             double cost = ownEP <= 0.0D ? 0.0D : (1.5D * targetEP * targetEP) / ownEP;
-            if (EnergyHelper.isOutOfEnergy(entity, 0.0D, cost)) return; // checks and deducts in one step
-            if (target instanceof Player) {
-                target.kill(); // players die normally rather than being deleted from the world
-            } else {
-                target.discard(); // no drops, no XP, no trace
+            if (EnergyHelper.isOutOfEnergy(entity, 0.0D, cost)) return; // checks, deducts, and messages in one step
+
+            // A real kill so EP/soul/awakening rewards credit the wielder - but no drops:
+            // players keep normal death handling (their inventory is their own declaration).
+            if (!(target instanceof Player)) {
+                target.getPersistentData().putLong(ErasureDropHandler.ERASED_AT, entity.level().getGameTime());
+            }
+            DamageSource source = createSource(instance, entity, DamageTypes.GENERIC_KILL, mode);
+            target.hurt(source, Float.MAX_VALUE);
+            if (target.isAlive()) {
+                // Whatever survived that had a hook cancelling damage; unwrite it directly.
+                target.setHealth(0.0F);
+                target.die(source);
             }
             instance.addMasteryPoint(entity);
             instance.setCoolDown(cooldown, mode);
