@@ -7,6 +7,7 @@ import io.github.manasmods.manascore.race.api.ManasRaceInstance;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
 import io.github.manasmods.tensura.ability.SkillUtils;
 import io.github.manasmods.tensura.race.TensuraRace;
+import io.github.manasmods.tensura.race.template.EvolutionRequirement;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -15,6 +16,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
 
@@ -35,6 +37,16 @@ public class DigitalNatureRace extends TensuraRace {
         super(ManasRace.Difficulty.EXTREME);
         addAttributeModifier(Attributes.MAX_HEALTH, ResourceLocation.fromNamespaceAndPath(MODID, "digital_nature_health"), 20.0D, AttributeModifier.Operation.ADD_VALUE);
         addAttributeModifier(Attributes.MOVEMENT_SPEED, ResourceLocation.fromNamespaceAndPath(MODID, "digital_nature_speed"), 0.10D, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+    }
+
+    /**
+     * The "enough EP" gate for evolving INTO Digital Nature (the base mod asks the
+     * TARGET race for its requirements). Shown as a progress bar on the evolution
+     * screen; matches the base-mod default formula (min base aura + min base magicule).
+     */
+    @Override
+    public Map<EvolutionRequirement, Float> getEvolutionRequirements(ManasRaceInstance previous, LivingEntity entity) {
+        return Map.of(new EvolutionRequirement.EPRequirement(400_000.0D), 100.0F);
     }
 
     @Override

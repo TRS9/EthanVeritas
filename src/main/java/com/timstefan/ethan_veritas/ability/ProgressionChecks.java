@@ -7,8 +7,6 @@ import io.github.manasmods.tensura.ability.SkillUtils;
 import io.github.manasmods.tensura.ability.magic.Element;
 import io.github.manasmods.tensura.ability.magic.spiritual.SpiritualMagic;
 import io.github.manasmods.tensura.race.human.HumanSaintRace;
-import io.github.manasmods.tensura.registry.skill.ExtraSkills;
-import io.github.manasmods.tensura.registry.skill.UniqueSkills;
 import io.github.manasmods.tensura.storage.TensuraStorages;
 import io.github.manasmods.tensura.storage.ep.IExistence;
 import io.github.manasmods.tensura.storage.spirit.ISpiritWielder;
@@ -54,24 +52,14 @@ public final class ProgressionChecks {
                 .orElse(false);
     }
 
-    /** Any analyst-type skill qualifies a mind for Digital Nature: Analyst, Great Sage, Sage, or Thoth itself. */
-    public static boolean hasAnalystTypeSkill(LivingEntity entity) {
-        return SkillUtils.hasSkill(entity, UniqueSkills.ANALYST.get())
-                || SkillUtils.hasSkill(entity, UniqueSkills.GREAT_SAGE.get())
-                || SkillUtils.hasSkill(entity, ExtraSkills.SAGE.get())
-                || SkillUtils.hasSkill(entity, AllSkills.THOTH.get());
-    }
-
-    /** EP a mind must carry before Digital Nature becomes reachable. */
-    public static final double DIGITAL_NATURE_EP_REQUIREMENT = 5_000_000.0D;
-
     /**
      * The Digital Nature gate, checked from every race's evolution list: an
      * analytical-department ULTIMATE skill (currently Thoth - the base mod ships no
-     * ultimates of its own in 2.0) plus enough EP.
+     * ultimates of its own in 2.0). The EP side of the gate is NOT checked here:
+     * it lives in the race's own EvolutionRequirements, so the evolution screen can
+     * show it as a proper progress bar instead of silently hiding the option.
      */
     public static boolean canReachDigitalNature(LivingEntity entity) {
-        return SkillUtils.hasSkill(entity, AllSkills.THOTH.get())
-                && TensuraStorages.getExistenceFrom(entity).getEP() >= DIGITAL_NATURE_EP_REQUIREMENT;
+        return SkillUtils.hasSkill(entity, AllSkills.THOTH.get());
     }
 }

@@ -3,12 +3,13 @@ package com.timstefan.ethan_veritas.ability.skill.ultimate;
 import com.timstefan.ethan_veritas.ability.AbilityUtils;
 import com.timstefan.ethan_veritas.ability.ProgressionChecks;
 import com.timstefan.ethan_veritas.registry.skill.AllSkills;
-import io.github.manasmods.manascore.network.api.util.Changeable;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.SkillUtils;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.registry.effect.TensuraMobEffects;
+import io.github.manasmods.tensura.registry.skill.ExtraSkills;
+import io.github.manasmods.tensura.util.EnergyHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
@@ -25,21 +26,21 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
  * halves of the Dual Awakening). Points to master: 2000; full mastery evolves it into
  * Information God: Ain, REPLACING this skill.
  * <p>
- * Passive [True]: Existence Barrier - 10% (20% mastered) reduction of all damage,
- * hooked on the damage event itself so nothing can dispel it. Parallel Existence -
- * the first fatal blow per 5 minutes (2.5 mastered) resolves to 1 HP instead.
- * Both defer to Ain's elevated versions once Ain is owned.
+ * Grants on learning: Existence Barrier (this addon's extra skill - Multilayer
+ * Barrier at 10x maximum health) and the base mod's Spatial Motion for dimensional
+ * movement, following the base mod's pattern of composing big skills out of
+ * standalone extra skills.
  * <p>
- * Active modes (scroll to switch):
- * mode 0 - Dimensional Dominion [Press]: blink 16 blocks (32 mastered).
- * mode 1 - Infons Manipulation [Press]: rewrite information - silence the target's
- * skills and unwrite your own afflictions.
+ * Passive [True]: Parallel Existence - the first fatal blow per 5 minutes
+ * (2.5 mastered) resolves to 1 HP instead. Defers to Ain once Ain is owned.
+ * <p>
+ * Active:
+ * mode 0 - Infons Manipulation [Press]: rewrite information - silence and weaken the
+ * existence in your gaze, unwrite your own afflictions. 2K MP.
  */
 public class AinSophAurSkill extends Skill {
     private static final String PARALLEL_EXISTENCE_TIME = "ParallelExistenceTime";
-
-    private static final int MODE_DIMENSIONAL_DOMINION = 0;
-    private static final int MODE_INFONS_MANIPULATION = 1;
+    private static final int MODE_INFONS_MANIPULATION = 0;
 
     public AinSophAurSkill() {
         super(SkillType.ULTIMATE);
@@ -69,27 +70,20 @@ public class AinSophAurSkill extends Skill {
     }
 
     @Override
-    public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
-        // A Digital Nature existence pays no upkeep; the actives charge their own price.
-        return 0.0D;
+    public void onLearnSkill(ManasSkillInstance instance, LivingEntity entity) {
+        super.onLearnSkill(instance, entity);
+        // Existence Barrier lives as its own extra skill (Multilayer Barrier writ divine);
+        // dimensional movement comes from the base mod's Spatial Motion instead of a duplicate blink.
+        SkillHelper.learnSkill(entity, AllSkills.EXISTENCE_BARRIER.get());
+        SkillHelper.learnSkill(entity, ExtraSkills.SPATIAL_MOTION.get());
     }
 
     // ----- Passives -----
 
-    /** Existence Barrier: always-on damage reduction that no enemy ability can toggle off. */
-    @Override
-    public boolean onTakenDamage(ManasSkillInstance instance, LivingEntity entity, DamageSource source, Changeable<Float> damage) {
-        // Once Ain is acquired, its elevated Existence Barrier takes over entirely - never stack the two.
-        if (SkillUtils.hasSkill(entity, AllSkills.AIN.get())) return true;
-        float reduction = instance.isMastered(entity) ? 0.8F : 0.9F;
-        damage.set(damage.get() * reduction);
-        return true;
-    }
-
     /** Parallel Existence: the first fatal hit per cooldown window leaves the owner at 1 HP. */
     @Override
     public boolean onDeath(ManasSkillInstance instance, LivingEntity entity, DamageSource source) {
-        // Ain's distributed continuity replaces this once learned.
+        // Ain's Absolute Origin replaces this once learned.
         if (SkillUtils.hasSkill(entity, AllSkills.AIN.get())) return true;
         CompoundTag tag = instance.getOrCreateTag();
         long now = entity.level().getGameTime();
@@ -113,55 +107,34 @@ public class AinSophAurSkill extends Skill {
         SkillHelper.learnSkill(entity, AllSkills.AIN.get());
     }
 
-    // ----- Active modes -----
-
-    @Override
-    public int getModes(ManasSkillInstance instance) {
-        return 2;
-    }
-
-    @Override
-    public int nextMode(LivingEntity entity, ManasSkillInstance instance, int mode, boolean reverse) {
-        return (mode + (reverse ? -1 : 1) + getModes(instance)) % getModes(instance);
-    }
+    // ----- Active -----
 
     @Override
     public String getModeId(ManasSkillInstance instance, int mode) {
-        return switch (mode) {
-            case MODE_DIMENSIONAL_DOMINION -> "ain_soph_aur.dimensional_dominion";
-            case MODE_INFONS_MANIPULATION -> "ain_soph_aur.infons_manipulation";
-            default -> super.getModeId(instance, mode);
-        };
+        return mode == MODE_INFONS_MANIPULATION ? "ain_soph_aur.infons_manipulation" : super.getModeId(instance, mode);
+    }
+
+    @Override
+    public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
+        return mode == MODE_INFONS_MANIPULATION ? 2_000.0D : 0.0D;
     }
 
     @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
-        if (entity.level().isClientSide()) return;
+        if (mode != MODE_INFONS_MANIPULATION) return;
+        if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
         boolean mastered = instance.isMastered(entity);
-        switch (mode) {
-            case MODE_DIMENSIONAL_DOMINION -> {
-                // Relocation within recognized space: 16 blocks (32 mastered), 1s between uses.
-                if (!AbilityUtils.tryCooldown(instance, entity, "DimensionalDominionTime", 20L)) return;
-                if (AbilityUtils.blink(entity, mastered ? 32.0D : 16.0D)) {
-                    instance.addMasteryPoint(entity);
-                }
-            }
-            case MODE_INFONS_MANIPULATION -> {
-                // Read/write authority over information: silence the gazed existence's skills
-                // and unwrite your own afflictions. 10s CD, 2K MP.
-                if (!AbilityUtils.tryCooldown(instance, entity, "InfonsManipulationTime", 200L)) return;
-                if (!AbilityUtils.payMagicule(entity, 2_000.0D)) return;
-                LivingEntity target = AbilityUtils.findLookTarget(entity, 32.0D);
-                if (target != null) {
-                    target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.SILENCE),
-                            mastered ? 200 : 100, 0, false, true));
-                    target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, mastered ? 200 : 100, 0, false, true));
-                }
-                AbilityUtils.removeHarmfulEffects(entity);
-                instance.addMasteryPoint(entity);
-            }
-            default -> {
-            }
+
+        // Read/write authority over information: silence and weaken the gazed existence,
+        // and unwrite the wielder's own afflictions.
+        LivingEntity target = AbilityUtils.findLookTarget(entity, 32.0D);
+        if (target != null) {
+            target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.SILENCE),
+                    mastered ? 200 : 100, 0, false, true));
+            target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, mastered ? 200 : 100, 0, false, true));
         }
+        AbilityUtils.removeHarmfulEffects(entity);
+        instance.addMasteryPoint(entity);
+        instance.setCoolDown(200, mode);
     }
 }

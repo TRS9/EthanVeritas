@@ -16,8 +16,9 @@ import java.util.List;
 
 /**
  * Digital Nature is reachable from ANY race, not just the human line: Divine Human,
- * demons, beastfolk - whatever the player currently is. The gate is purely mental:
- * an analytical-department Ultimate Skill plus enough EP (see ProgressionChecks).
+ * demons, beastfolk - whatever the player currently is. The visibility gate is purely
+ * mental - an analytical-department Ultimate Skill (see ProgressionChecks); the EP
+ * side is a normal EvolutionRequirement on DigitalNatureRace, shown as a progress bar.
  * <p>
  * Hooked at the ManasRaceInstance delegate so a single injection covers every race,
  * instead of mixing into each race class individually.
@@ -30,6 +31,7 @@ public abstract class ManasRaceInstanceMixin {
     private void ethan_veritas$addDigitalNature(LivingEntity entity, CallbackInfoReturnable<List<ManasRace>> cir) {
         ManasRaceInstance instance = (ManasRaceInstance) (Object) this;
         if (instance.getRace() instanceof DigitalNatureRace) return;
+        // Only the mental gate hides the option; the EP requirement is visible on the evolution screen.
         if (!ProgressionChecks.canReachDigitalNature(entity)) return;
         ManasRace digitalNature = AllRaces.DIGITAL_NATURE.get();
         List<ManasRace> evolutions = new ArrayList<>(cir.getReturnValue());

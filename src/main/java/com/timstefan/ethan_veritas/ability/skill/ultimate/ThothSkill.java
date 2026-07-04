@@ -5,12 +5,17 @@ import com.timstefan.ethan_veritas.ability.ProgressionChecks;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.SkillUtils;
+import io.github.manasmods.tensura.ability.TensuraSkill;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.registry.attribute.TensuraAttributes;
 import io.github.manasmods.tensura.registry.effect.TensuraMobEffects;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
 import io.github.manasmods.tensura.registry.skill.UniqueSkills;
+import io.github.manasmods.tensura.registry.sound.TensuraSoundEvents;
+import io.github.manasmods.tensura.util.EnergyHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -28,13 +33,13 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
  * line, True Demon Lord, or True Hero). Points to master: 2000.
  * <p>
  * Passive [Toggle] Parallel Computation - attack/mining/casting acceleration
- * (stronger on mastery), shown as Haste while running. Learning or first toggling
- * Thoth grants the base mod's information suite (Analytical Appraisal, Thought
- * Acceleration, Magic Sense, Universal Perception, Magic Jamming).
+ * (stronger on mastery), shown as Haste while running; no upkeep, mastery grows
+ * with active time (base ThoughtAcceleration pattern). Learning or toggling Thoth
+ * grants the base mod's information suite.
  * <p>
- * Active modes (scroll to switch):
- * mode 0 - Skill Interference [Press]: silence the existence in your gaze.
- * mode 1 - Universal Detect [Press]: reveal every living existence around you.
+ * Active modes:
+ * mode 0 - Skill Interference [Press]: silence the existence in your gaze. 5K MP.
+ * mode 1 - Universal Detect [Press]: reveal every living existence around you. 1K MP.
  */
 public class ThothSkill extends Skill {
     private static final ResourceLocation ATTACK_SPEED = ResourceLocation.fromNamespaceAndPath(MODID, "thoth_attack_speed");
@@ -74,8 +79,7 @@ public class ThothSkill extends Skill {
 
     private static void grantInformationSuite(LivingEntity entity) {
         // Base-mod skills stand in for the design's sub-abilities instead of duplicates.
-        // Idempotent: SkillHelper.learnSkill no-ops for skills already known, so this is
-        // also re-run on toggle to cover skills obtained via commands (which skip onLearnSkill).
+        // Idempotent: re-run on toggle to cover skills obtained via commands (which skip onLearnSkill).
         SkillHelper.learnSkill(entity, ExtraSkills.ANALYTICAL_APPRAISAL.get());
         SkillHelper.learnSkill(entity, ExtraSkills.THOUGHT_ACCELERATION.get());
         SkillHelper.learnSkill(entity, ExtraSkills.MAGIC_SENSE.get());
@@ -89,17 +93,11 @@ public class ThothSkill extends Skill {
         grantInformationSuite(entity);
     }
 
-    // ----- Passive: Parallel Computation (toggle) -----
+    // ----- Passive: Parallel Computation (toggle, no upkeep - base ThoughtAcceleration pattern) -----
 
     @Override
     public boolean canBeToggled(ManasSkillInstance instance, LivingEntity entity) {
         return true;
-    }
-
-    @Override
-    public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
-        // Toggle upkeep only; the actives charge their own price when pressed.
-        return 10.0D;
     }
 
     @Override
@@ -129,9 +127,18 @@ public class ThothSkill extends Skill {
 
     @Override
     public void onTick(ManasSkillInstance instance, LivingEntity entity) {
-        if (entity.level().isClientSide() || entity.tickCount % 40 != 0) return;
+        // Mastery grows with active use, like the base mod's Thought Acceleration.
+        CompoundTag tag = instance.getOrCreateTag();
+        int time = tag.getInt("ActiveTime");
+        if (time % 600 == 0) {
+            instance.addMasteryPoint(entity);
+        }
+        tag.putInt("ActiveTime", time + 1);
+
         // Visible feedback that Parallel Computation is running.
-        entity.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, 60, instance.isMastered(entity) ? 1 : 0, true, false, true));
+        if (time % 40 == 0) {
+            entity.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, 60, instance.isMastered(entity) ? 1 : 0, true, false, true));
+        }
     }
 
     // ----- Active modes -----
@@ -156,29 +163,41 @@ public class ThothSkill extends Skill {
     }
 
     @Override
+    public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
+        return switch (mode) {
+            case MODE_SKILL_INTERFERENCE -> 5_000.0D;
+            case MODE_UNIVERSAL_DETECT -> 1_000.0D;
+            default -> 0.0D;
+        };
+    }
+
+    @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
-        if (entity.level().isClientSide()) return;
         boolean mastered = instance.isMastered(entity);
         switch (mode) {
             case MODE_SKILL_INTERFERENCE -> {
-                // Silence the target's next skill usage window. 8s CD (5s mastered), 5K MP.
+                // Silence the target's skill usage. 8s CD (5s mastered).
                 LivingEntity target = AbilityUtils.findLookTarget(entity, 32.0D);
-                if (target == null) return;
-                if (!AbilityUtils.tryCooldown(instance, entity, "SkillInterferenceTime", mastered ? 100L : 160L)) return;
-                if (!AbilityUtils.payMagicule(entity, 5_000.0D)) return;
+                if (target == null) {
+                    entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
+                            (SoundEvent) TensuraSoundEvents.GENERIC_CAST_FAIL.get(), TensuraSkill.ABILITY_SOUND, 1.0F, 1.0F);
+                    return;
+                }
+                if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
                 target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.SILENCE),
                         mastered ? 320 : 160, 0, false, true));
                 instance.addMasteryPoint(entity);
+                instance.setCoolDown(mastered ? 100 : 160, mode);
             }
             case MODE_UNIVERSAL_DETECT -> {
-                // Radar ping: everything alive within 64 blocks glows through walls for 15s. 10s CD, 1K MP.
-                if (!AbilityUtils.tryCooldown(instance, entity, "UniversalDetectTime", 200L)) return;
-                if (!AbilityUtils.payMagicule(entity, 1_000.0D)) return;
+                // Radar ping: everything alive within 64 blocks glows through walls for 15s. 10s CD.
+                if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
                 for (LivingEntity revealed : entity.level().getEntitiesOfClass(LivingEntity.class,
                         entity.getBoundingBox().inflate(64.0D), other -> other != entity && other.isAlive())) {
                     revealed.addEffect(new MobEffectInstance(MobEffects.GLOWING, 300, 0, false, false));
                 }
                 instance.addMasteryPoint(entity);
+                instance.setCoolDown(200, mode);
             }
             default -> {
             }

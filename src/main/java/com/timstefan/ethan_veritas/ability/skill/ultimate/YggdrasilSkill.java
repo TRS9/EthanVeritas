@@ -1,12 +1,14 @@
 package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
-import com.timstefan.ethan_veritas.ability.AbilityUtils;
 import com.timstefan.ethan_veritas.ability.ProgressionChecks;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.registry.effect.TensuraMobEffects;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
+import io.github.manasmods.tensura.registry.skill.ResistanceSkills;
+import io.github.manasmods.tensura.util.EnergyHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -24,17 +26,16 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
  * Space, Light, Darkness) + transcendence. Points to master: 2000.
  * <p>
  * Passive [Toggle]: Natural Resistance (Resistance, Fire Resistance; stronger on
- * mastery) and Sovereign's Dominion - subordinates and allies within 10 blocks
- * (20 mastered) gain Inspiration. Learning or first toggling Yggdrasil grants the
- * base mod's elemental suite (the six Manipulations, Multilayer Barrier, Spatial Motion).
+ * mastery) and Sovereign's Dominion - allies within 10 blocks (20 mastered) gain
+ * Inspiration. Learning or toggling Yggdrasil grants the base mod's elemental suite:
+ * the six Manipulations, Multilayer Barrier, Spatial Motion (spatial movement comes
+ * from the base skill rather than a duplicate here), and the elemental resistances.
  * <p>
- * Active modes (scroll to switch):
- * mode 0 - Conceptual Emission [Press]: elemental burst around the point in your gaze.
- * mode 1 - Spatial Authority [Press]: short-range blink.
+ * Active:
+ * mode 0 - Conceptual Emission [Press]: fused-element burst at the point in your gaze. 10K MP.
  */
 public class YggdrasilSkill extends Skill {
     private static final int MODE_CONCEPTUAL_EMISSION = 0;
-    private static final int MODE_SPATIAL_AUTHORITY = 1;
 
     public YggdrasilSkill() {
         super(SkillType.ULTIMATE);
@@ -73,6 +74,17 @@ public class YggdrasilSkill extends Skill {
         SkillHelper.learnSkill(entity, ExtraSkills.SPATIAL_MANIPULATION.get());
         SkillHelper.learnSkill(entity, ExtraSkills.MULTILAYER_BARRIER.get());
         SkillHelper.learnSkill(entity, ExtraSkills.SPATIAL_MOTION.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.COLD_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.DARKNESS_ATTACK_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.EARTH_ATTACK_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.ELECTRICITY_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.FLAME_ATTACK_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.HEAT_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.LIGHT_ATTACK_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.SPATIAL_ATTACK_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.THERMAL_FLUCTUATION_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.WATER_ATTACK_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.WIND_ATTACK_RESISTANCE.get());
     }
 
     @Override
@@ -86,16 +98,11 @@ public class YggdrasilSkill extends Skill {
         grantElementalSuite(entity);
     }
 
-    // ----- Passive: Natural Resistance + Sovereign's Dominion (toggle) -----
+    // ----- Passive: Natural Resistance + Sovereign's Dominion (toggle, no upkeep) -----
 
     @Override
     public boolean canBeToggled(ManasSkillInstance instance, LivingEntity entity) {
         return true;
-    }
-
-    @Override
-    public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
-        return 10.0D;
     }
 
     @Override
@@ -105,16 +112,23 @@ public class YggdrasilSkill extends Skill {
 
     @Override
     public void onTick(ManasSkillInstance instance, LivingEntity entity) {
-        if (entity.level().isClientSide()) return;
         boolean mastered = instance.isMastered(entity);
 
-        if (entity.tickCount % 40 == 0) {
+        // Mastery grows with active use, like the base mod's Thought Acceleration.
+        CompoundTag tag = instance.getOrCreateTag();
+        int time = tag.getInt("ActiveTime");
+        if (time % 600 == 0) {
+            instance.addMasteryPoint(entity);
+        }
+        tag.putInt("ActiveTime", time + 1);
+
+        if (time % 40 == 0) {
             entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, mastered ? 1 : 0, true, false, true));
             entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 60, 0, true, false, true));
         }
 
         // Sovereign's Dominion: Inspiration for everyone fighting under this aura.
-        if (entity.tickCount % 20 == 0) {
+        if (time % 20 == 0) {
             double radius = mastered ? 20.0D : 10.0D;
             for (LivingEntity ally : entity.level().getEntitiesOfClass(LivingEntity.class, entity.getBoundingBox().inflate(radius),
                     other -> other != entity && other.isAlliedTo(entity))) {
@@ -124,56 +138,34 @@ public class YggdrasilSkill extends Skill {
         }
     }
 
-    // ----- Active modes -----
-
-    @Override
-    public int getModes(ManasSkillInstance instance) {
-        return 2;
-    }
-
-    @Override
-    public int nextMode(LivingEntity entity, ManasSkillInstance instance, int mode, boolean reverse) {
-        return (mode + (reverse ? -1 : 1) + getModes(instance)) % getModes(instance);
-    }
+    // ----- Active -----
 
     @Override
     public String getModeId(ManasSkillInstance instance, int mode) {
-        return switch (mode) {
-            case MODE_CONCEPTUAL_EMISSION -> "yggdrasil.conceptual_emission";
-            case MODE_SPATIAL_AUTHORITY -> "yggdrasil.spatial_authority";
-            default -> super.getModeId(instance, mode);
-        };
+        return mode == MODE_CONCEPTUAL_EMISSION ? "yggdrasil.conceptual_emission" : super.getModeId(instance, mode);
+    }
+
+    @Override
+    public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
+        return mode == MODE_CONCEPTUAL_EMISSION ? 10_000.0D : 0.0D;
     }
 
     @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
-        if (entity.level().isClientSide()) return;
+        if (mode != MODE_CONCEPTUAL_EMISSION) return;
+        if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
         boolean mastered = instance.isMastered(entity);
-        switch (mode) {
-            case MODE_CONCEPTUAL_EMISSION -> {
-                // Fused-element burst centered 6 blocks along the gaze: magic damage + ignition. 5s CD, 10K MP.
-                if (!AbilityUtils.tryCooldown(instance, entity, "ConceptualEmissionTime", 100L)) return;
-                if (!AbilityUtils.payMagicule(entity, 10_000.0D)) return;
-                Vec3 center = entity.getEyePosition().add(entity.getLookAngle().scale(6.0D));
-                float damage = mastered ? 20.0F : 12.0F;
-                for (LivingEntity victim : entity.level().getEntitiesOfClass(LivingEntity.class,
-                        entity.getBoundingBox().inflate(12.0D),
-                        other -> other != entity && !other.isAlliedTo(entity) && other.position().distanceTo(center) <= 5.0D)) {
-                    victim.hurt(entity.damageSources().indirectMagic(entity, entity), damage);
-                    victim.setRemainingFireTicks(60);
-                }
-                instance.addMasteryPoint(entity);
-            }
-            case MODE_SPATIAL_AUTHORITY -> {
-                // 8-block blink (12 mastered). 5s CD, 500 MP.
-                if (!AbilityUtils.tryCooldown(instance, entity, "SpatialAuthorityTime", 100L)) return;
-                if (!AbilityUtils.payMagicule(entity, 500.0D)) return;
-                if (AbilityUtils.blink(entity, mastered ? 12.0D : 8.0D)) {
-                    instance.addMasteryPoint(entity);
-                }
-            }
-            default -> {
-            }
+
+        // Fused-element burst centered 6 blocks along the gaze: magic damage + ignition.
+        Vec3 center = entity.getEyePosition().add(entity.getLookAngle().scale(6.0D));
+        float damage = mastered ? 20.0F : 12.0F;
+        for (LivingEntity victim : entity.level().getEntitiesOfClass(LivingEntity.class,
+                entity.getBoundingBox().inflate(12.0D),
+                other -> other != entity && !other.isAlliedTo(entity) && other.position().distanceTo(center) <= 5.0D)) {
+            victim.hurt(entity.damageSources().indirectMagic(entity, entity), damage);
+            victim.setRemainingFireTicks(60);
         }
+        instance.addMasteryPoint(entity);
+        instance.setCoolDown(mastered ? 60 : 100, mode);
     }
 }

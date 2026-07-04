@@ -5,12 +5,16 @@ import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.manascore.skill.api.SkillAPI;
 import io.github.manasmods.tensura.ability.SkillHelper;
+import io.github.manasmods.tensura.ability.TensuraSkill;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
+import io.github.manasmods.tensura.registry.sound.TensuraSoundEvents;
 import io.github.manasmods.tensura.storage.TensuraStorages;
 import io.github.manasmods.tensura.storage.ep.IExistence;
+import io.github.manasmods.tensura.util.EnergyHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -25,25 +29,23 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
 /**
  * Information God: Ain - Stage 5, the self-directed evolution of Ain Soph Aur.
  * Never purchasable: granted the moment Ain Soph Aur reaches full mastery, and the
- * King-tier skill is removed in the exchange - Ain carries everything it did.
+ * King-tier skill is removed in the exchange - Ain carries everything it did (the
+ * Existence Barrier and Spatial Motion grants persist as standalone skills).
  * Points to master: 2000.
  * <p>
- * Passive [Toggle]: Existence Barrier - a standing barrier of 10x maximum health
- * (Multilayer Barrier writ divine), re-forming every 5 seconds. Omniscient Dominion -
- * hostile existences within 32 blocks are revealed through all cover.
+ * Passive [Toggle]: Omniscient Dominion - hostile existences within 32 blocks are
+ * revealed through all cover.
  * Passive [True]: Absolute Origin - a fatal blow is answered by re-declaring the
- * wielder's own existence: full restoration, once per 10 minutes. Parallel Existence
- * is granted as the base mod's Body Double on learning.
+ * wielder's own existence: full restoration, once per 10 minutes.
+ * On learning: Parallel Existence manifests as the base mod's Body Double.
  * <p>
- * Active modes (scroll to switch):
- * mode 0 - Dimensional Dominion [Press]: blink 48 blocks.
- * mode 1 - Absolute Erasure [Press]: unwrite whatever is gazed upon, block or being.
+ * Active:
+ * mode 0 - Absolute Erasure [Press]: unwrite whatever is gazed upon, block or being.
  */
 public class AinSkill extends Skill {
     private static final String ORIGIN_TIME = "AbsoluteOriginTime";
-
-    private static final int MODE_DIMENSIONAL_DOMINION = 0;
-    private static final int MODE_ABSOLUTE_ERASURE = 1;
+    private static final int MODE_ABSOLUTE_ERASURE = 0;
+    private static final double ERASURE_RANGE = 64.0D;
 
     public AinSkill() {
         super(SkillType.ULTIMATE);
@@ -67,7 +69,7 @@ public class AinSkill extends Skill {
 
     @Override
     public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
-        // Base upkeep is nothing; Absolute Erasure charges its own scaled cost directly.
+        // Absolute Erasure charges its own scaled cost based on the target's EP.
         return 0.0D;
     }
 
@@ -76,6 +78,8 @@ public class AinSkill extends Skill {
         super.onLearnSkill(instance, entity);
         // Parallel Existence: distributed continuity through the base mod's Body Double.
         SkillHelper.learnSkill(entity, ExtraSkills.BODY_DOUBLE.get());
+        // Safety net in case this skill was command-granted without walking the ASA path.
+        SkillHelper.learnSkill(entity, AllSkills.EXISTENCE_BARRIER.get());
         // The exchange: Ain includes everything Ain Soph Aur did, so the King tier is removed.
         // Deferred a tick so we never mutate the skill storage while it is being iterated.
         if (entity.getServer() != null) {
@@ -86,20 +90,10 @@ public class AinSkill extends Skill {
 
     // ----- Passives -----
 
-    /** Toggled exactly like every other skill. */
+    /** Omniscient Dominion, toggled exactly like every other skill. */
     @Override
     public boolean canBeToggled(ManasSkillInstance instance, LivingEntity entity) {
         return true;
-    }
-
-    @Override
-    public void onToggleOn(ManasSkillInstance instance, LivingEntity entity) {
-        entity.setAbsorptionAmount(Math.max(entity.getAbsorptionAmount(), existenceBarrierStrength(entity)));
-    }
-
-    @Override
-    public void onToggleOff(ManasSkillInstance instance, LivingEntity entity) {
-        entity.setAbsorptionAmount(0.0F);
     }
 
     @Override
@@ -109,15 +103,15 @@ public class AinSkill extends Skill {
 
     @Override
     public void onTick(ManasSkillInstance instance, LivingEntity entity) {
-        if (entity.level().isClientSide()) return;
-
-        // Existence Barrier: a standing barrier of 10x maximum health that re-forms every 5 seconds.
-        if (entity.tickCount % 100 == 0 && entity.getAbsorptionAmount() < existenceBarrierStrength(entity)) {
-            entity.setAbsorptionAmount(existenceBarrierStrength(entity));
+        CompoundTag tag = instance.getOrCreateTag();
+        int time = tag.getInt("ActiveTime");
+        if (time % 600 == 0) {
+            instance.addMasteryPoint(entity);
         }
+        tag.putInt("ActiveTime", time + 1);
 
         // Omniscient Dominion: hostile existences within the passive domain are always perceived.
-        if (entity.tickCount % 40 == 0) {
+        if (time % 40 == 0) {
             for (LivingEntity hostile : entity.level().getEntitiesOfClass(LivingEntity.class, entity.getBoundingBox().inflate(32.0D),
                     other -> other instanceof Enemy && other.isAlive())) {
                 hostile.addEffect(new MobEffectInstance(MobEffects.GLOWING, 80, 0, false, false));
@@ -144,41 +138,11 @@ public class AinSkill extends Skill {
         return false;
     }
 
-    // ----- Active modes -----
-
-    @Override
-    public int getModes(ManasSkillInstance instance) {
-        return 2;
-    }
-
-    @Override
-    public int nextMode(LivingEntity entity, ManasSkillInstance instance, int mode, boolean reverse) {
-        return (mode + (reverse ? -1 : 1) + getModes(instance)) % getModes(instance);
-    }
+    // ----- Active -----
 
     @Override
     public String getModeId(ManasSkillInstance instance, int mode) {
-        return switch (mode) {
-            case MODE_DIMENSIONAL_DOMINION -> "ain.dimensional_dominion";
-            case MODE_ABSOLUTE_ERASURE -> "ain.absolute_erasure";
-            default -> super.getModeId(instance, mode);
-        };
-    }
-
-    @Override
-    public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
-        if (entity.level().isClientSide()) return;
-        switch (mode) {
-            case MODE_DIMENSIONAL_DOMINION -> {
-                if (!AbilityUtils.tryCooldown(instance, entity, "DimensionalDominionTime", 20L)) return;
-                if (AbilityUtils.blink(entity, 48.0D)) {
-                    instance.addMasteryPoint(entity);
-                }
-            }
-            case MODE_ABSOLUTE_ERASURE -> absoluteErasure(instance, entity);
-            default -> {
-            }
-        }
+        return mode == MODE_ABSOLUTE_ERASURE ? "ain.absolute_erasure" : super.getModeId(instance, mode);
     }
 
     /**
@@ -187,44 +151,43 @@ public class AinSkill extends Skill {
      * wielder's EP exceeds 1.5x the target's, and the magicule price rises as that
      * gap narrows: cost = 1.5 * targetEP^2 / ownEP. 300s CD (150s mastered).
      */
-    private void absoluteErasure(ManasSkillInstance instance, LivingEntity entity) {
-        CompoundTag tag = instance.getOrCreateTag();
-        long now = entity.level().getGameTime();
-        long cooldown = instance.isMastered(entity) ? 3000L : 6000L;
-        if (tag.contains("AbsoluteErasureTime") && now - tag.getLong("AbsoluteErasureTime") < cooldown) return;
+    @Override
+    public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
+        if (mode != MODE_ABSOLUTE_ERASURE) return;
+        boolean mastered = instance.isMastered(entity);
+        int cooldown = mastered ? 3000 : 6000;
 
-        LivingEntity target = AbilityUtils.findLookTarget(entity, 64.0D);
+        LivingEntity target = AbilityUtils.findLookTarget(entity, ERASURE_RANGE);
         if (target != null) {
             IExistence own = TensuraStorages.getExistenceFrom(entity);
             IExistence other = TensuraStorages.getExistenceFrom(target);
             double ownEP = own.getEP();
             double targetEP = other.getEP();
-            if (ownEP < targetEP * 1.5D) return; // the existence is too heavy to unwrite - no cooldown spent
+            if (ownEP < targetEP * 1.5D) {
+                // The existence is too heavy to unwrite - no cost, no cooldown.
+                entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
+                        (SoundEvent) TensuraSoundEvents.GENERIC_CAST_FAIL.get(), TensuraSkill.ABILITY_SOUND, 1.0F, 1.0F);
+                return;
+            }
             double cost = ownEP <= 0.0D ? 0.0D : (1.5D * targetEP * targetEP) / ownEP;
-            if (!AbilityUtils.payMagicule(entity, cost)) return; // not enough magicules to close the declaration
+            if (EnergyHelper.isOutOfEnergy(entity, 0.0D, cost)) return; // checks and deducts in one step
             if (target instanceof Player) {
                 target.kill(); // players die normally rather than being deleted from the world
             } else {
                 target.discard(); // no drops, no XP, no trace
             }
-            tag.putLong("AbsoluteErasureTime", now);
-            instance.markDirty();
             instance.addMasteryPoint(entity);
+            instance.setCoolDown(cooldown, mode);
             return;
         }
 
         // Nothing living in the gaze: unwrite the block instead, droplessly.
-        HitResult hit = entity.pick(64.0D, 0.0F, false);
+        HitResult hit = entity.pick(ERASURE_RANGE, 0.0F, false);
         if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult blockHit) {
             if (entity.level().destroyBlock(blockHit.getBlockPos(), false, entity)) {
-                tag.putLong("AbsoluteErasureTime", now);
-                instance.markDirty();
                 instance.addMasteryPoint(entity);
+                instance.setCoolDown(cooldown, mode);
             }
         }
-    }
-
-    private static float existenceBarrierStrength(LivingEntity entity) {
-        return entity.getMaxHealth() * 10.0F;
     }
 }

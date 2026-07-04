@@ -1,10 +1,6 @@
 package com.timstefan.ethan_veritas.ability;
 
-import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
-import io.github.manasmods.tensura.storage.TensuraStorages;
-import io.github.manasmods.tensura.storage.ep.IExistence;
 import net.minecraft.core.Holder;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
@@ -17,25 +13,6 @@ import java.util.Optional;
 public final class AbilityUtils {
 
     private AbilityUtils() {
-    }
-
-    /** Per-mode cooldown stored on the skill instance; returns true (and stamps the time) when the ability may fire. */
-    public static boolean tryCooldown(ManasSkillInstance instance, LivingEntity entity, String key, long ticks) {
-        CompoundTag tag = instance.getOrCreateTag();
-        long now = entity.level().getGameTime();
-        if (tag.contains(key) && now - tag.getLong(key) < ticks) return false;
-        tag.putLong(key, now);
-        instance.markDirty();
-        return true;
-    }
-
-    /** Deducts the magicule price if the wielder can afford it; false means the ability fizzles. */
-    public static boolean payMagicule(LivingEntity entity, double cost) {
-        if (cost <= 0.0D) return true;
-        IExistence existence = TensuraStorages.getExistenceFrom(entity);
-        if (existence.getMagicule() < cost) return false;
-        existence.setMagicule(existence.getMagicule() - cost);
-        return true;
     }
 
     /** The living entity in the wielder's gaze, or null. */
@@ -58,19 +35,6 @@ public final class AbilityUtils {
             }
         }
         return closest;
-    }
-
-    /** Blink along the look vector to the furthest collision-free spot within range; true if moved. */
-    public static boolean blink(LivingEntity entity, double range) {
-        Vec3 look = entity.getLookAngle();
-        for (double distance = range; distance >= 2.0D; distance -= 1.0D) {
-            Vec3 target = entity.position().add(look.scale(distance));
-            if (entity.level().noCollision(entity, entity.getBoundingBox().move(target.subtract(entity.position())))) {
-                entity.teleportTo(target.x(), target.y(), target.z());
-                return true;
-            }
-        }
-        return false;
     }
 
     public static void removeHarmfulEffects(LivingEntity entity) {

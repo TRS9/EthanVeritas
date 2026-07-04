@@ -9,19 +9,19 @@
   "ethan_veritas.skill.mode.thoth.universal_detect": "Universal Detect",
 
   "ethan_veritas.skill.yggdrasil": "Primal King: Yggdrasil",
-  "ethan_veritas.skill.yggdrasil.description": "The elemental half of the Dual Ultimate Skill Awakening, born from the simultaneous fusion of every Greater Spirit. Grants the elemental suite (the six Manipulations, Multilayer Barrier, Spatial Motion). Toggle: Natural Resistance and the Sovereign's Dominion, inspiring every ally under the aura. Actives: Conceptual Emission detonates fused elements at the point of your gaze; Spatial Authority is a short blink.",
+  "ethan_veritas.skill.yggdrasil.description": "The elemental half of the Dual Ultimate Skill Awakening, born from the simultaneous fusion of every Greater Spirit. Grants the elemental suite: the six Manipulations, Multilayer Barrier, Spatial Motion and the elemental resistances. Toggle: Natural Resistance and the Sovereign's Dominion, inspiring every ally under the aura. Active: Conceptual Emission detonates fused elements at the point of your gaze.",
   "ethan_veritas.skill.mode.yggdrasil.conceptual_emission": "Conceptual Emission",
-  "ethan_veritas.skill.mode.yggdrasil.spatial_authority": "Spatial Authority",
 
   "ethan_veritas.skill.ain_soph_aur": "Information King: Ain Soph Aur",
-  "ethan_veritas.skill.ain_soph_aur.description": "Intrinsic authority of a Digital Nature existence, the convergence of Thoth and Yggdrasil. True passives: the Existence Barrier deflects a portion of all harm and cannot be dispelled; Parallel Existence turns the first fatal blow aside. Actives: Dimensional Dominion relocates the wielder within recognized space; Infons Manipulation rewrites information, sealing the target's skills and unwriting the wielder's afflictions. Full mastery evolves this skill into Information God: Ain, replacing it entirely.",
-  "ethan_veritas.skill.mode.ain_soph_aur.dimensional_dominion": "Dimensional Dominion",
+  "ethan_veritas.skill.ain_soph_aur.description": "Intrinsic authority of a Digital Nature existence, the convergence of Thoth and Yggdrasil. Grants the Existence Barrier and Spatial Motion. True passive: Parallel Existence turns the first fatal blow aside. Active: Infons Manipulation rewrites information, sealing the target's skills and unwriting the wielder's afflictions. Full mastery evolves this skill into Information God: Ain, replacing it entirely.",
   "ethan_veritas.skill.mode.ain_soph_aur.infons_manipulation": "Infons Manipulation",
 
   "ethan_veritas.skill.ain": "Information God: Ain",
-  "ethan_veritas.skill.ain.description": "The nothing beneath even limitlessness, replacing Ain Soph Aur upon its mastery. Toggle: the Existence Barrier holds ten times the wielder's life as a standing barrier, and Omniscient Dominion perceives every hostile existence through any cover. True passive: Absolute Origin re-declares the wielder's own existence when a fatal blow lands. Actives: Dimensional Dominion relocates at will; Absolute Erasure unwrites whatever is gazed upon - blocks vanish without trace, and living existences are erased if the wielder's EP exceeds 1.5x theirs, at a magicule price that rises as the gap narrows. Parallel Existence manifests as Body Double.",
-  "ethan_veritas.skill.mode.ain.dimensional_dominion": "Dimensional Dominion",
+  "ethan_veritas.skill.ain.description": "The nothing beneath even limitlessness, replacing Ain Soph Aur upon its mastery. Toggle: Omniscient Dominion perceives every hostile existence through any cover. True passive: Absolute Origin re-declares the wielder's own existence when a fatal blow lands. Active: Absolute Erasure unwrites whatever is gazed upon - blocks vanish without trace, and living existences are erased if the wielder's EP exceeds 1.5x theirs, at a magicule price that rises as the gap narrows. Parallel Existence manifests as Body Double, and the Existence Barrier persists as its own skill.",
   "ethan_veritas.skill.mode.ain.absolute_erasure": "Absolute Erasure",
+
+  "ethan_veritas.skill.existence_barrier": "Existence Barrier",
+  "ethan_veritas.skill.existence_barrier.description": "Multilayer Barrier evolved to the Digital Nature tier: a standing barrier holding ten times the wielder's maximum health, raised and dropped at will. Granted by Information King: Ain Soph Aur and kept forever after.",
 
   "ethan_veritas.race.digital_nature": "Digital Nature",
   "ethan_veritas.race.digital_nature.description": "A being that has shed its material dependence and exists as pure information, the threshold shared by True Dragons and Manas. Reachable from any race by a mind carrying an analytical Ultimate Skill and sufficient EP - everything before it is skill, not blood."

@@ -1,5 +1,6 @@
 package com.timstefan.ethan_veritas.registry.skill;
 
+import com.timstefan.ethan_veritas.ability.skill.extra.ExistenceBarrierSkill;
 import com.timstefan.ethan_veritas.ability.skill.ultimate.AinSkill;
 import com.timstefan.ethan_veritas.ability.skill.ultimate.AinSophAurSkill;
 import com.timstefan.ethan_veritas.ability.skill.ultimate.ThothSkill;
@@ -32,6 +33,10 @@ public class AllSkills {
 
     // Information God tier (Stage 5) - granted automatically by mastering Ain Soph Aur, never purchasable.
     public static final RegistrySupplier<AinSkill> AIN = register("ain", AinSkill::new);
+
+    // Existence Barrier - standalone extra skill (Multilayer Barrier at 10x max health),
+    // granted by Ain Soph Aur and kept through the exchange into Ain.
+    public static final RegistrySupplier<ExistenceBarrierSkill> EXISTENCE_BARRIER = register("existence_barrier", ExistenceBarrierSkill::new);
 
     private static <E extends ManasSkill> RegistrySupplier<E> register(String name, Supplier<E> ctor) {
         return SkillAPI.getSkillRegistry().register(ResourceLocation.fromNamespaceAndPath(MODID, name), ctor);
