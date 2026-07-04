@@ -1,5 +1,17 @@
 {
-  "itemGroup.ethan_veritas": "Example Mod Tab",
+  "itemGroup.ethan_veritas": "Ethan Veritas",
   "block.ethan_veritas.example_block": "Example Block",
-  "item.ethan_veritas.example_item": "Example Item"
+  "item.ethan_veritas.example_item": "Example Item",
+
+  "ethan_veritas.skill.thoth": "Logos King: Thoth",
+  "ethan_veritas.skill.thoth.description": "The information half of the Dual Ultimate Skill Awakening. Grants Analytical Appraisal, Thought Acceleration, Magic Sense, Universal Perception and Magic Jamming, and accelerates attacks, mining and spellcasting while active.",
+  "ethan_veritas.skill.yggdrasil": "Primal King: Yggdrasil",
+  "ethan_veritas.skill.yggdrasil.description": "The elemental half of the Dual Ultimate Skill Awakening, born from the simultaneous fusion of every Greater Spirit. Grants command of the elemental schools, Multilayer Barrier and Spatial Motion. While active, resist all damage and empower nearby allies with the Sovereign's Dominion.",
+  "ethan_veritas.skill.ain_soph_aur": "Information King: Ain Soph Aur",
+  "ethan_veritas.skill.ain_soph_aur.description": "Intrinsic authority of a Digital Nature existence, the convergence of Thoth and Yggdrasil. The Existence Barrier passively deflects a portion of all harm and cannot be dispelled, Parallel Existence turns the first fatal blow aside, and Dimensional Dominion warps the wielder wherever they look. Full mastery of this authority yields Information God: Ain.",
+  "ethan_veritas.skill.ain": "Information God: Ain",
+  "ethan_veritas.skill.ain.description": "The nothing beneath even limitlessness, replacing Ain Soph Aur entirely upon its mastery. While active: the Existence Barrier holds ten times the wielder's life as a standing barrier, and Omniscient Dominion perceives every hostile existence through any cover. Use: Dimensional Dominion relocation. Sneak-use: Absolute Erasure - unwrite whatever is gazed upon, block or being; erasing an existence demands 1.5x its EP, at a magicule price that rises as the gap narrows. Absolute Origin re-declares the wielder's own existence when a fatal blow lands, and Parallel Existence manifests as Body Double.",
+
+  "ethan_veritas.race.digital_nature": "Digital Nature",
+  "ethan_veritas.race.digital_nature.description": "A being that has shed its material dependence and exists as pure information, the threshold shared by True Dragons and Manas. The sole race change of the Ethan Veritas path - everything before it is skill, not blood."
 }
