@@ -1,11 +1,10 @@
 package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
+import com.timstefan.ethan_veritas.ability.ProgressionChecks;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.SkillHelper;
-import io.github.manasmods.tensura.ability.SkillUtils;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
-import io.github.manasmods.tensura.registry.skill.UniqueSkills;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -36,8 +35,9 @@ public class YggdrasilSkill extends Skill {
 
     @Override
     public boolean checkAcquiringRequirement(Player player, double ep) {
-        // Same Dual Awakening gate as Thoth: both halves unlock together.
-        return ep >= 2_500_000.0D && SkillUtils.hasSkill(player, UniqueSkills.ANALYST.get());
+        // Born from the fusion of all elementals: every Greater Spirit (Flame, Water, Wind,
+        // Earth, Space, Light, Darkness) plus the same transcendence gate as Thoth.
+        return ProgressionChecks.hasAllGreaterSpirits(player) && ProgressionChecks.isSaintDemonLordOrHero(player);
     }
 
     @Override

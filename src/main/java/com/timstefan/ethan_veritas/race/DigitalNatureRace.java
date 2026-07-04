@@ -5,6 +5,7 @@ import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import io.github.manasmods.manascore.race.api.ManasRace;
 import io.github.manasmods.manascore.race.api.ManasRaceInstance;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
+import io.github.manasmods.tensura.ability.SkillUtils;
 import io.github.manasmods.tensura.race.TensuraRace;
 import io.github.manasmods.tensura.registry.race.TensuraRaces;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
@@ -56,7 +57,13 @@ public class DigitalNatureRace extends TensuraRace {
     @Override
     public List<ManasSkill> getIntrinsicSkills(ManasRaceInstance instance, LivingEntity entity) {
         List<ManasSkill> skills = new ArrayList<>();
-        skills.add(AllSkills.AIN_SOPH_AUR.get());
+        // Ain Soph Aur is the convergence of Thoth and Yggdrasil - it only manifests for a
+        // Digital Nature that carries both, and never re-manifests once Ain has replaced it.
+        if (SkillUtils.hasSkill(entity, AllSkills.THOTH.get())
+                && SkillUtils.hasSkill(entity, AllSkills.YGGDRASIL.get())
+                && !SkillUtils.hasSkill(entity, AllSkills.AIN.get())) {
+            skills.add(AllSkills.AIN_SOPH_AUR.get());
+        }
         // Stopped World Navigation / Dimensional travel flavor via base mod skills.
         skills.add(ExtraSkills.SPATIAL_MOTION.get());
         skills.add(ExtraSkills.UNIVERSAL_PERCEPTION.get());

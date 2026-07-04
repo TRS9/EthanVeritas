@@ -1,5 +1,6 @@
 package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
+import com.timstefan.ethan_veritas.ability.ProgressionChecks;
 import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import io.github.manasmods.manascore.network.api.util.Changeable;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
@@ -39,9 +40,10 @@ public class AinSophAurSkill extends Skill {
 
     @Override
     public boolean checkAcquiringRequirement(Player player, double ep) {
-        // Normally learned as the Digital Nature race intrinsic; the EP gate only exists
-        // as a deliberate, far-endgame fallback path.
-        return ep >= 10_000_000.0D;
+        // The convergence of Thoth and Yggdrasil, possible only for a Digital Nature existence.
+        return SkillUtils.hasSkill(player, AllSkills.THOTH.get())
+                && SkillUtils.hasSkill(player, AllSkills.YGGDRASIL.get())
+                && ProgressionChecks.isDigitalNature(player);
     }
 
     @Override

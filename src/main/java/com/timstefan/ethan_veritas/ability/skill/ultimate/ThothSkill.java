@@ -1,5 +1,6 @@
 package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
+import com.timstefan.ethan_veritas.ability.ProgressionChecks;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.SkillUtils;
@@ -42,8 +43,8 @@ public class ThothSkill extends Skill {
 
     @Override
     public boolean checkAcquiringRequirement(Player player, double ep) {
-        // Dual Awakening gate: 2.5M EP on top of the base mod's Analyst unique skill.
-        return ep >= 2_500_000.0D && SkillUtils.hasSkill(player, UniqueSkills.ANALYST.get());
+        // Analyst evolves into Thoth once its wielder transcends: Human Saint line, True Demon Lord or True Hero.
+        return SkillUtils.hasSkill(player, UniqueSkills.ANALYST.get()) && ProgressionChecks.isSaintDemonLordOrHero(player);
     }
 
     @Override
