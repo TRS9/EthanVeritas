@@ -1,6 +1,7 @@
 package com.timstefan.ethan_veritas.race;
 
 import com.mojang.datafixers.util.Pair;
+import com.timstefan.ethan_veritas.ability.AbilityUtils;
 import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import io.github.manasmods.manascore.attribute.api.ManasCoreAttributes;
 import io.github.manasmods.manascore.race.api.ManasRace;
@@ -60,6 +61,18 @@ public class DigitalNatureRace extends TensuraRace {
     @Override
     public Map<EvolutionRequirement, Float> getEvolutionRequirements(ManasRaceInstance previous, LivingEntity entity) {
         return Map.of(new EvolutionRequirement.EPRequirement(2_000_000.0D), 100.0F);
+    }
+
+    /**
+     * Evolution rewards, run once when the evolution completes: on top of the base
+     * floor-raising, shedding material dependence transcends conventional interference -
+     * every acquired resistance becomes a nullification, exactly like the True Demon
+     * Lord / True Hero awakenings.
+     */
+    @Override
+    public void triggerEvolutionRewards(ManasRaceInstance instance, LivingEntity entity) {
+        super.triggerEvolutionRewards(instance, entity);
+        AbilityUtils.upgradeResistancesToNullifications(entity);
     }
 
     @Override

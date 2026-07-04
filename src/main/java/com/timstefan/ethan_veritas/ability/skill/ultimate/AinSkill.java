@@ -83,10 +83,14 @@ public class AinSkill extends Skill {
         // Safety net in case this skill was command-granted without walking the ASA path.
         SkillHelper.learnSkill(entity, AllSkills.EXISTENCE_BARRIER.get());
         // The exchange: Ain includes everything Ain Soph Aur did, so the King tier is removed.
+        // Becoming an Information God also transcends conventional interference: every
+        // acquired resistance becomes a nullification (the awakening routine, re-run).
         // Deferred a tick so we never mutate the skill storage while it is being iterated.
         if (entity.getServer() != null) {
-            entity.getServer().execute(() ->
-                    SkillAPI.getSkillsFrom(entity).forgetSkill(AllSkills.AIN_SOPH_AUR.get()));
+            entity.getServer().execute(() -> {
+                SkillAPI.getSkillsFrom(entity).forgetSkill(AllSkills.AIN_SOPH_AUR.get());
+                AbilityUtils.upgradeResistancesToNullifications(entity);
+            });
         }
     }
 

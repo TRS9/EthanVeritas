@@ -1,5 +1,9 @@
 package com.timstefan.ethan_veritas.ability;
 
+import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
+import io.github.manasmods.manascore.skill.api.SkillAPI;
+import io.github.manasmods.manascore.skill.api.Skills;
+import io.github.manasmods.tensura.ability.skill.resist.ResistSkill;
 import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -52,5 +56,20 @@ public final class AbilityUtils {
                 .filter(effect -> effect.value().isBeneficial())
                 .toList();
         beneficial.forEach(entity::removeEffect);
+    }
+
+    /**
+     * Upgrades every acquired resistance skill to its nullification - the exact
+     * routine the base mod runs on True Demon Lord / True Hero awakening
+     * (RaceHelper.awakening), reused for the Digital Nature evolution and the
+     * acquisition of Information God: Ain.
+     */
+    public static void upgradeResistancesToNullifications(LivingEntity entity) {
+        Skills storage = SkillAPI.getSkillsFrom(entity);
+        for (ManasSkillInstance instance : List.copyOf(storage.getLearnedSkills())) {
+            if (instance.getSkill() instanceof ResistSkill resistSkill) {
+                storage.getSkill(resistSkill).ifPresent(skillInstance -> resistSkill.evolveToNullification(skillInstance, entity));
+            }
+        }
     }
 }
