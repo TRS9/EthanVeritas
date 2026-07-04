@@ -11,11 +11,19 @@ import io.github.manasmods.tensura.registry.attribute.TensuraAttributes;
 import io.github.manasmods.tensura.registry.effect.TensuraMobEffects;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
 import io.github.manasmods.tensura.registry.skill.UniqueSkills;
+import io.github.manasmods.tensura.registry.block.TensuraBlocks;
 import io.github.manasmods.tensura.registry.sound.TensuraSoundEvents;
 import io.github.manasmods.tensura.util.EnergyHelper;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -192,20 +200,65 @@ public class ThothSkill extends Skill {
                 target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.SILENCE),
                         mastered ? 600 : 300, 0, false, true));
                 target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, mastered ? 600 : 300, 1, false, true));
+                // The interference made visible: glyphs unravelling around the sealed existence.
+                if (entity.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.ENCHANT, target.getX(), target.getY() + target.getBbHeight() * 0.75D, target.getZ(),
+                            60, target.getBbWidth() * 0.8D, target.getBbHeight() * 0.4D, target.getBbWidth() * 0.8D, 0.5D);
+                    serverLevel.sendParticles(ParticleTypes.WITCH, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
+                            25, target.getBbWidth() * 0.6D, target.getBbHeight() * 0.4D, target.getBbWidth() * 0.6D, 0.05D);
+                }
                 instance.addMasteryPoint(entity);
                 instance.setCoolDown(1, mode); // TESTING: was mastered ? 100 : 160
             }
             case MODE_UNIVERSAL_DETECT -> {
-                // Radar ping: everything alive within 64 blocks glows through walls for 30s. 10s CD.
+                // Radar ping: everything alive within 64 blocks glows through walls for 30s,
+                // and Magic Ore veins within 24 blocks are sensed and marked. 10s CD.
                 if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
                 for (LivingEntity revealed : entity.level().getEntitiesOfClass(LivingEntity.class,
                         entity.getBoundingBox().inflate(64.0D), other -> other != entity && other.isAlive())) {
                     revealed.addEffect(new MobEffectInstance(MobEffects.GLOWING, 600, 0, false, false));
                 }
+                senseMagicOre(entity);
                 instance.addMasteryPoint(entity);
                 instance.setCoolDown(1, mode); // TESTING: was 200
             }
             default -> {
+            }
+        }
+    }
+
+    /**
+     * Information Dominion over the terrain: Magic Ore within 24 blocks is sensed,
+     * marked with light pillars, and reported with the nearest vein's coordinates.
+     * (True through-wall block highlighting needs a client shader; the particle
+     * markers + coordinates are the honest server-side equivalent.)
+     */
+    private static void senseMagicOre(LivingEntity entity) {
+        if (!(entity.level() instanceof ServerLevel serverLevel)) return;
+        Block magicOre = (Block) TensuraBlocks.MAGIC_ORE.get();
+        Block deepslateMagicOre = (Block) TensuraBlocks.DEEPSLATE_MAGIC_ORE.get();
+        BlockPos origin = entity.blockPosition();
+        BlockPos nearest = null;
+        int found = 0;
+        for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-24, -24, -24), origin.offset(24, 24, 24))) {
+            BlockState state = serverLevel.getBlockState(pos);
+            if (!state.is(magicOre) && !state.is(deepslateMagicOre)) continue;
+            found++;
+            if (nearest == null || pos.distSqr(origin) < nearest.distSqr(origin)) {
+                nearest = pos.immutable();
+            }
+            if (found <= 64) {
+                serverLevel.sendParticles(ParticleTypes.END_ROD, pos.getX() + 0.5D, pos.getY() + 1.2D, pos.getZ() + 0.5D,
+                        12, 0.1D, 0.8D, 0.1D, 0.02D);
+            }
+        }
+        if (entity instanceof Player player) {
+            if (nearest != null) {
+                player.displayClientMessage(Component.translatable("ethan_veritas.skill.thoth.ore_sense",
+                        found, nearest.getX(), nearest.getY(), nearest.getZ()).withStyle(ChatFormatting.AQUA), true);
+            } else {
+                player.displayClientMessage(Component.translatable("ethan_veritas.skill.thoth.ore_sense_none")
+                        .withStyle(ChatFormatting.GRAY), true);
             }
         }
     }

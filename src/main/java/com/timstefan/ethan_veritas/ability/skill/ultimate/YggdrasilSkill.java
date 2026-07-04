@@ -8,8 +8,11 @@ import io.github.manasmods.tensura.registry.effect.TensuraMobEffects;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
 import io.github.manasmods.tensura.registry.skill.ResistanceSkills;
 import io.github.manasmods.tensura.util.EnergyHelper;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -31,11 +34,15 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
  * the six Manipulations, Multilayer Barrier, Spatial Motion (spatial movement comes
  * from the base skill rather than a duplicate here), and the elemental resistances.
  * <p>
- * Active:
- * mode 0 - Conceptual Emission [Press]: fused-element burst at the point in your gaze. 10K MP.
+ * Active modes:
+ * mode 0 - Conceptual Emission [Press]: fused-element burst at the point in your gaze. 50K MP.
+ * mode 1 - Primal Tempest [Press]: a storm of all elements raging around the wielder;
+ * press again to disperse it. Range, duration and damage grow with mastery. 100K MP.
  */
 public class YggdrasilSkill extends Skill {
     private static final int MODE_CONCEPTUAL_EMISSION = 0;
+    private static final int MODE_PRIMAL_TEMPEST = 1;
+    private static final String TEMPEST_END = "TempestEndTime";
 
     public YggdrasilSkill() {
         super(SkillType.ULTIMATE);
@@ -107,71 +114,179 @@ public class YggdrasilSkill extends Skill {
 
     @Override
     public boolean canTick(ManasSkillInstance instance, LivingEntity entity) {
-        return instance.isToggled();
+        return instance.isToggled() || isTempestActive(instance, entity);
     }
 
     @Override
     public void onTick(ManasSkillInstance instance, LivingEntity entity) {
         boolean mastered = instance.isMastered(entity);
 
-        // Mastery grows with active use, like the base mod's Thought Acceleration.
-        CompoundTag tag = instance.getOrCreateTag();
-        int time = tag.getInt("ActiveTime");
-        if (time % 600 == 0) {
-            instance.addMasteryPoint(entity);
-        }
-        tag.putInt("ActiveTime", time + 1);
+        if (instance.isToggled()) {
+            // Mastery grows with active use, like the base mod's Thought Acceleration.
+            CompoundTag tag = instance.getOrCreateTag();
+            int time = tag.getInt("ActiveTime");
+            if (time % 600 == 0) {
+                instance.addMasteryPoint(entity);
+            }
+            tag.putInt("ActiveTime", time + 1);
 
-        if (time % 40 == 0) {
-            // Natural Resistance at ultimate scale: 40% (60% mastered) plus immunity to fire.
-            entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, mastered ? 2 : 1, true, false, true));
-            entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 60, 0, true, false, true));
+            if (time % 40 == 0) {
+                // Natural Resistance at ultimate scale: 40% (60% mastered) plus immunity to fire.
+                entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, mastered ? 2 : 1, true, false, true));
+                entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 60, 0, true, false, true));
+            }
+
+            // Sovereign's Dominion: Inspiration for everyone fighting under this aura.
+            if (time % 20 == 0) {
+                double radius = mastered ? 20.0D : 10.0D;
+                for (LivingEntity ally : entity.level().getEntitiesOfClass(LivingEntity.class, entity.getBoundingBox().inflate(radius),
+                        other -> other != entity && other.isAlliedTo(entity))) {
+                    ally.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.INSPIRATION),
+                            60, mastered ? 3 : 1, true, false, true));
+                }
+            }
         }
 
-        // Sovereign's Dominion: Inspiration for everyone fighting under this aura.
-        if (time % 20 == 0) {
-            double radius = mastered ? 20.0D : 10.0D;
-            for (LivingEntity ally : entity.level().getEntitiesOfClass(LivingEntity.class, entity.getBoundingBox().inflate(radius),
-                    other -> other != entity && other.isAlliedTo(entity))) {
-                ally.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.INSPIRATION),
-                        60, mastered ? 3 : 1, true, false, true));
+        tickTempest(instance, entity, mastered);
+    }
+
+    // ----- Primal Tempest -----
+
+    private static boolean isTempestActive(ManasSkillInstance instance, LivingEntity entity) {
+        CompoundTag tag = instance.getTag();
+        return tag != null && tag.contains(TEMPEST_END) && tag.getLong(TEMPEST_END) > entity.level().getGameTime();
+    }
+
+    private void tickTempest(ManasSkillInstance instance, LivingEntity entity, boolean mastered) {
+        CompoundTag tag = instance.getTag();
+        if (tag == null || !tag.contains(TEMPEST_END)) return;
+        long now = entity.level().getGameTime();
+        if (tag.getLong(TEMPEST_END) <= now) {
+            endTempest(instance, entity);
+            return;
+        }
+
+        double radius = mastered ? 10.0D : 6.0D;
+
+        // All elements raging at once: a rising spiral of flame, frost, lightning,
+        // wind and light circling the wielder.
+        if (entity.level() instanceof ServerLevel serverLevel) {
+            for (int arm = 0; arm < 6; arm++) {
+                double angle = Math.toRadians((now * 14 + arm * 60) % 360);
+                double armRadius = 1.5D + (arm % 3) * (radius - 1.5D) / 3.0D;
+                double x = entity.getX() + Math.cos(angle) * armRadius;
+                double z = entity.getZ() + Math.sin(angle) * armRadius;
+                double y = entity.getY() + 0.3D + arm * 0.7D;
+                SimpleParticleType type = switch (arm % 5) {
+                    case 0 -> ParticleTypes.FLAME;
+                    case 1 -> ParticleTypes.SNOWFLAKE;
+                    case 2 -> ParticleTypes.ELECTRIC_SPARK;
+                    case 3 -> ParticleTypes.CLOUD;
+                    default -> ParticleTypes.END_ROD;
+                };
+                serverLevel.sendParticles(type, x, y, z, 3, 0.15D, 0.15D, 0.15D, 0.02D);
+            }
+        }
+
+        // The storm bites twice a second: fused-element damage plus a deep chill.
+        if (now % 10 == 0) {
+            float damage = mastered ? 40.0F : 20.0F;
+            for (LivingEntity victim : entity.level().getEntitiesOfClass(LivingEntity.class,
+                    entity.getBoundingBox().inflate(radius),
+                    other -> other != entity && !other.isAlliedTo(entity) && other.isAlive()
+                            && other.distanceTo(entity) <= radius)) {
+                victim.hurt(entity.damageSources().indirectMagic(entity, entity), damage);
+                victim.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.CHILL),
+                        60, mastered ? 1 : 0, false, true));
             }
         }
     }
 
-    // ----- Active -----
+    private void endTempest(ManasSkillInstance instance, LivingEntity entity) {
+        CompoundTag tag = instance.getOrCreateTag();
+        tag.remove(TEMPEST_END);
+        instance.markDirty();
+        instance.setCoolDown(200, MODE_PRIMAL_TEMPEST); // TESTING: 10s per request; tune for release
+    }
+
+    // ----- Active modes -----
+
+    @Override
+    public int getModes(ManasSkillInstance instance) {
+        return 2;
+    }
+
+    @Override
+    public int nextMode(LivingEntity entity, ManasSkillInstance instance, int mode, boolean reverse) {
+        return (mode + (reverse ? -1 : 1) + getModes(instance)) % getModes(instance);
+    }
 
     @Override
     public String getModeId(ManasSkillInstance instance, int mode) {
-        return mode == MODE_CONCEPTUAL_EMISSION ? "yggdrasil.conceptual_emission" : super.getModeId(instance, mode);
+        return switch (mode) {
+            case MODE_CONCEPTUAL_EMISSION -> "yggdrasil.conceptual_emission";
+            case MODE_PRIMAL_TEMPEST -> "yggdrasil.primal_tempest";
+            default -> super.getModeId(instance, mode);
+        };
     }
 
     @Override
     public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
-        return mode == MODE_CONCEPTUAL_EMISSION ? 50_000.0D : 0.0D;
+        return switch (mode) {
+            case MODE_CONCEPTUAL_EMISSION -> 50_000.0D;
+            case MODE_PRIMAL_TEMPEST -> 100_000.0D;
+            default -> 0.0D;
+        };
     }
 
     @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
-        if (mode != MODE_CONCEPTUAL_EMISSION) return;
-        if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
         boolean mastered = instance.isMastered(entity);
+        switch (mode) {
+            case MODE_CONCEPTUAL_EMISSION -> {
+                if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
 
-        // Fused-element burst centered along the gaze, at peer-ultimate scale
-        // (reference: Absolute Severance 700/1400, Nova Break 5000): heavy magic
-        // damage, ignition, and Fragility shredding the survivors' defenses.
-        Vec3 center = entity.getEyePosition().add(entity.getLookAngle().scale(8.0D));
-        float damage = mastered ? 600.0F : 300.0F;
-        double radius = mastered ? 8.0D : 6.0D;
-        for (LivingEntity victim : entity.level().getEntitiesOfClass(LivingEntity.class,
-                entity.getBoundingBox().inflate(20.0D),
-                other -> other != entity && !other.isAlliedTo(entity) && other.position().distanceTo(center) <= radius)) {
-            victim.hurt(entity.damageSources().indirectMagic(entity, entity), damage);
-            victim.setRemainingFireTicks(100);
-            victim.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.FRAGILITY),
-                    200, mastered ? 1 : 0, false, true));
+                // Fused-element burst centered along the gaze, at peer-ultimate scale
+                // (reference: Absolute Severance 700/1400, Nova Break 5000): heavy magic
+                // damage, ignition, and Fragility shredding the survivors' defenses.
+                Vec3 center = entity.getEyePosition().add(entity.getLookAngle().scale(8.0D));
+                float damage = mastered ? 600.0F : 300.0F;
+                double radius = mastered ? 8.0D : 6.0D;
+                for (LivingEntity victim : entity.level().getEntitiesOfClass(LivingEntity.class,
+                        entity.getBoundingBox().inflate(20.0D),
+                        other -> other != entity && !other.isAlliedTo(entity) && other.position().distanceTo(center) <= radius)) {
+                    victim.hurt(entity.damageSources().indirectMagic(entity, entity), damage);
+                    victim.setRemainingFireTicks(100);
+                    victim.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.FRAGILITY),
+                            200, mastered ? 1 : 0, false, true));
+                }
+                // Every element detonating at once, not just a puff of fire.
+                if (entity.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, center.x(), center.y(), center.z(), 2, 0.5D, 0.5D, 0.5D, 0.0D);
+                    serverLevel.sendParticles(ParticleTypes.FLAME, center.x(), center.y(), center.z(), 80, radius * 0.5D, radius * 0.4D, radius * 0.5D, 0.15D);
+                    serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x(), center.y(), center.z(), 60, radius * 0.5D, radius * 0.4D, radius * 0.5D, 0.3D);
+                    serverLevel.sendParticles(ParticleTypes.SNOWFLAKE, center.x(), center.y(), center.z(), 50, radius * 0.5D, radius * 0.4D, radius * 0.5D, 0.1D);
+                    serverLevel.sendParticles(ParticleTypes.END_ROD, center.x(), center.y(), center.z(), 40, radius * 0.4D, radius * 0.3D, radius * 0.4D, 0.1D);
+                    serverLevel.sendParticles(ParticleTypes.CLOUD, center.x(), center.y(), center.z(), 40, radius * 0.5D, radius * 0.3D, radius * 0.5D, 0.2D);
+                }
+                instance.addMasteryPoint(entity);
+                instance.setCoolDown(1, mode); // TESTING: was mastered ? 60 : 100
+            }
+            case MODE_PRIMAL_TEMPEST -> {
+                // Press while raging: disperse the storm (cooldown starts then).
+                if (isTempestActive(instance, entity)) {
+                    endTempest(instance, entity);
+                    return;
+                }
+                if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
+                long duration = mastered ? 600L : 400L; // 30s mastered, 20s not
+                instance.getOrCreateTag().putLong(TEMPEST_END, entity.level().getGameTime() + duration);
+                instance.markDirty();
+                instance.addMasteryPoint(entity);
+                // No cooldown yet - it starts when the storm ends, so the cancel press works.
+            }
+            default -> {
+            }
         }
-        instance.addMasteryPoint(entity);
-        instance.setCoolDown(20, mode); // TESTING: was mastered ? 60 : 100
     }
 }
