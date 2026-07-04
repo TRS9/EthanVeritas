@@ -1,11 +1,8 @@
 package com.timstefan.ethan_veritas.handler;
 
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
-
-import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
 
 /**
  * Absolute Erasure removes an existence "leaving no Infons trace at any layer":
@@ -17,13 +14,19 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
  * dealing the killing blow; these handlers consume the stamp. The short validity
  * window means a lingering stamp (e.g. if some cheat-death ability cancelled the
  * kill) cannot eat the drops of an unrelated later death.
+ * <p>
+ * Listeners are registered programmatically from the mod constructor (init())
+ * instead of via annotation scanning, so their registration is never in doubt.
  */
-@EventBusSubscriber(modid = MODID)
 public class ErasureDropHandler {
     public static final String ERASED_AT = "ethan_veritas_erased_at";
     private static final long VALID_WINDOW_TICKS = 100L;
 
-    @SubscribeEvent
+    public static void init() {
+        NeoForge.EVENT_BUS.addListener(ErasureDropHandler::onDrops);
+        NeoForge.EVENT_BUS.addListener(ErasureDropHandler::onExperienceDrop);
+    }
+
     public static void onDrops(LivingDropsEvent event) {
         if (wasJustErased(event.getEntity().getPersistentData().getLong(ERASED_AT), event.getEntity().level().getGameTime(),
                 event.getEntity().getPersistentData().contains(ERASED_AT))) {
@@ -31,7 +34,6 @@ public class ErasureDropHandler {
         }
     }
 
-    @SubscribeEvent
     public static void onExperienceDrop(LivingExperienceDropEvent event) {
         if (wasJustErased(event.getEntity().getPersistentData().getLong(ERASED_AT), event.getEntity().level().getGameTime(),
                 event.getEntity().getPersistentData().contains(ERASED_AT))) {

@@ -8,16 +8,13 @@ import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
 
 /**
  * X-ray style ore highlighting for Thoth's Universal Detect: an invisible, AI-less,
@@ -33,13 +30,20 @@ import static com.timstefan.ethan_veritas.Ethan_veritas.MODID;
  * longer exists (mined, exploded), so no ghost markers linger over empty holes.
  * Any marker that survives into a fresh session (crash, chunk unload race) is
  * discarded the moment it joins a level again.
+ * <p>
+ * Listeners are registered programmatically from the mod constructor (init())
+ * instead of via annotation scanning, so their registration is never in doubt.
  */
-@EventBusSubscriber(modid = MODID)
 public class OreRevealHandler {
     private static final String ORE_MARKER = "ethan_veritas_ore_marker";
     private static final List<Marker> ACTIVE = new ArrayList<>();
 
     private record Marker(Entity entity, BlockPos pos, long expiry) {
+    }
+
+    public static void init() {
+        NeoForge.EVENT_BUS.addListener(OreRevealHandler::onServerTick);
+        NeoForge.EVENT_BUS.addListener(OreRevealHandler::onEntityJoin);
     }
 
     public static void spawnMarker(ServerLevel level, BlockPos pos, long lifetimeTicks) {
@@ -53,11 +57,12 @@ public class OreRevealHandler {
         marker.setGlowingTag(true);
         marker.setPersistenceRequired();
         marker.getPersistentData().putBoolean(ORE_MARKER, true);
-        level.addFreshEntity(marker);
+        // Track BEFORE spawning: the join listener below fires during addFreshEntity
+        // and treats any flagged-but-untracked marker as a stale leftover to delete.
         ACTIVE.add(new Marker(marker, pos, level.getGameTime() + lifetimeTicks));
+        level.addFreshEntity(marker);
     }
 
-    @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         if (ACTIVE.isEmpty()) return;
         Iterator<Marker> iterator = ACTIVE.iterator();
@@ -80,7 +85,6 @@ public class OreRevealHandler {
     }
 
     /** Markers never outlive a session: anything re-joining a level with the flag is stale. */
-    @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide()) return;
         Entity entity = event.getEntity();

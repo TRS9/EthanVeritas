@@ -1,6 +1,8 @@
 package com.timstefan.ethan_veritas;
 
 import com.mojang.logging.LogUtils;
+import com.timstefan.ethan_veritas.handler.ErasureDropHandler;
+import com.timstefan.ethan_veritas.handler.OreRevealHandler;
 import com.timstefan.ethan_veritas.registry.race.AllRaces;
 import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import net.minecraft.client.Minecraft;
@@ -89,6 +91,10 @@ public class Ethan_veritas {
         // (which register directly against ManasCore's own Registrar - see AllSkills for why).
         AllRaces.init();
         AllSkills.init();
+
+        // Game-bus event handlers, registered programmatically so registration is never in doubt.
+        OreRevealHandler.init();
+        ErasureDropHandler.init();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
