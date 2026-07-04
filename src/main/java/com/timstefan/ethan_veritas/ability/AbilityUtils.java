@@ -59,6 +59,23 @@ public final class AbilityUtils {
     }
 
     /**
+     * A skill instance's cooldown list is sized from getModes() at creation and then
+     * PERSISTED in NBT - instances saved before a skill gained an extra mode carry a
+     * short list forever, silently dropping cooldown writes for the new mode. This
+     * pads such legacy lists up to the current mode count.
+     */
+    public static void ensureCooldownCapacity(ManasSkillInstance instance, int modes) {
+        List<Integer> list = instance.getCooldownList();
+        if (list.size() >= modes) return;
+        List<Integer> padded = new java.util.ArrayList<>(list);
+        while (padded.size() < modes) {
+            padded.add(0);
+        }
+        instance.setCoolDownList(padded);
+        instance.markDirty();
+    }
+
+    /**
      * Upgrades every acquired resistance skill to its nullification - the exact
      * routine the base mod runs on True Demon Lord / True Hero awakening
      * (RaceHelper.awakening), reused for the Digital Nature evolution and the

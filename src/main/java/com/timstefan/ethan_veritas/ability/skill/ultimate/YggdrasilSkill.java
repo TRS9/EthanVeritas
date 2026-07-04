@@ -1,5 +1,6 @@
 package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
+import com.timstefan.ethan_veritas.ability.AbilityUtils;
 import com.timstefan.ethan_veritas.ability.ProgressionChecks;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.SkillHelper;
@@ -114,7 +115,10 @@ public class YggdrasilSkill extends Skill {
 
     @Override
     public boolean canTick(ManasSkillInstance instance, LivingEntity entity) {
-        return instance.isToggled() || isTempestActive(instance, entity);
+        // Tick while the tempest tag EXISTS (not only while unexpired), so the
+        // end-of-storm cleanup always runs even with the passive toggle off -
+        // otherwise the tick gate cuts out exactly at expiry and the state goes stale.
+        return instance.isToggled() || hasTempestState(instance);
     }
 
     @Override
@@ -152,7 +156,12 @@ public class YggdrasilSkill extends Skill {
 
     // ----- Primal Tempest -----
 
-    private static boolean isTempestActive(ManasSkillInstance instance, LivingEntity entity) {
+    private static boolean hasTempestState(ManasSkillInstance instance) {
+        CompoundTag tag = instance.getTag();
+        return tag != null && tag.contains(TEMPEST_END);
+    }
+
+    private static boolean isTempestRaging(ManasSkillInstance instance, LivingEntity entity) {
         CompoundTag tag = instance.getTag();
         return tag != null && tag.contains(TEMPEST_END) && tag.getLong(TEMPEST_END) > entity.level().getGameTime();
     }
@@ -241,6 +250,9 @@ public class YggdrasilSkill extends Skill {
 
     @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
+        // Instances saved before Primal Tempest existed carry a 1-slot cooldown list in
+        // their NBT; pad it so mode-1 cooldowns actually register.
+        AbilityUtils.ensureCooldownCapacity(instance, getModes(instance));
         boolean mastered = instance.isMastered(entity);
         switch (mode) {
             case MODE_CONCEPTUAL_EMISSION -> {
@@ -274,7 +286,7 @@ public class YggdrasilSkill extends Skill {
             }
             case MODE_PRIMAL_TEMPEST -> {
                 // Press while raging: disperse the storm (cooldown starts then).
-                if (isTempestActive(instance, entity)) {
+                if (isTempestRaging(instance, entity)) {
                     endTempest(instance, entity);
                     return;
                 }

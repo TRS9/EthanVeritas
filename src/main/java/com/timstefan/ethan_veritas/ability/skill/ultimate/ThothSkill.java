@@ -2,6 +2,7 @@ package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
 import com.timstefan.ethan_veritas.ability.AbilityUtils;
 import com.timstefan.ethan_veritas.ability.ProgressionChecks;
+import com.timstefan.ethan_veritas.handler.OreRevealHandler;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.SkillUtils;
@@ -228,34 +229,28 @@ public class ThothSkill extends Skill {
     }
 
     /**
-     * Information Dominion over the terrain: Magic Ore within 24 blocks is sensed,
-     * marked with light pillars, and reported with the nearest vein's coordinates.
-     * (True through-wall block highlighting needs a client shader; the particle
-     * markers + coordinates are the honest server-side equivalent.)
+     * Information Dominion over the terrain: Magic Ore within 24 blocks glows through
+     * the world for 30 seconds, exactly like revealed living existences - implemented
+     * with invisible glowing marker entities inside each vein (see OreRevealHandler).
      */
     private static void senseMagicOre(LivingEntity entity) {
         if (!(entity.level() instanceof ServerLevel serverLevel)) return;
         Block magicOre = (Block) TensuraBlocks.MAGIC_ORE.get();
         Block deepslateMagicOre = (Block) TensuraBlocks.DEEPSLATE_MAGIC_ORE.get();
         BlockPos origin = entity.blockPosition();
-        BlockPos nearest = null;
         int found = 0;
         for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-24, -24, -24), origin.offset(24, 24, 24))) {
             BlockState state = serverLevel.getBlockState(pos);
             if (!state.is(magicOre) && !state.is(deepslateMagicOre)) continue;
             found++;
-            if (nearest == null || pos.distSqr(origin) < nearest.distSqr(origin)) {
-                nearest = pos.immutable();
-            }
             if (found <= 64) {
-                serverLevel.sendParticles(ParticleTypes.END_ROD, pos.getX() + 0.5D, pos.getY() + 1.2D, pos.getZ() + 0.5D,
-                        12, 0.1D, 0.8D, 0.1D, 0.02D);
+                OreRevealHandler.spawnMarker(serverLevel, pos.immutable(), 600L);
             }
         }
         if (entity instanceof Player player) {
-            if (nearest != null) {
-                player.displayClientMessage(Component.translatable("ethan_veritas.skill.thoth.ore_sense",
-                        found, nearest.getX(), nearest.getY(), nearest.getZ()).withStyle(ChatFormatting.AQUA), true);
+            if (found > 0) {
+                player.displayClientMessage(Component.translatable("ethan_veritas.skill.thoth.ore_sense", found)
+                        .withStyle(ChatFormatting.AQUA), true);
             } else {
                 player.displayClientMessage(Component.translatable("ethan_veritas.skill.thoth.ore_sense_none")
                         .withStyle(ChatFormatting.GRAY), true);
