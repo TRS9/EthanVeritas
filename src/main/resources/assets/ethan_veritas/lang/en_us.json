@@ -1,5 +1,15 @@
 {
-  "itemGroup.ethan_veritas": "Example Mod Tab",
+  "itemGroup.ethan_veritas": "Ethan Veritas",
   "block.ethan_veritas.example_block": "Example Block",
-  "item.ethan_veritas.example_item": "Example Item"
+  "item.ethan_veritas.example_item": "Example Item",
+
+  "ethan_veritas.skill.thoth": "Logos King: Thoth",
+  "ethan_veritas.skill.thoth.description": "The information half of the Dual Ultimate Skill Awakening. Grants Analytical Appraisal, Thought Acceleration, Magic Sense, Universal Perception and Magic Jamming, and accelerates attacks, mining and spellcasting while active.",
+  "ethan_veritas.skill.yggdrasil": "Primal King: Yggdrasil",
+  "ethan_veritas.skill.yggdrasil.description": "The elemental half of the Dual Ultimate Skill Awakening. Grants command of the elemental schools, Multilayer Barrier and Spatial Motion. While active, resist all damage and empower nearby allies with the Sovereign's Dominion.",
+  "ethan_veritas.skill.ain_soph_aur": "Information King: Ain Soph Aur",
+  "ethan_veritas.skill.ain_soph_aur.description": "Intrinsic authority of a Digital Nature existence. The Existence Barrier passively deflects a portion of all harm and cannot be dispelled, Parallel Existence turns the first fatal blow aside, and Dimensional Dominion warps the wielder wherever they look. Mastery elevates this authority toward Information God.",
+
+  "ethan_veritas.race.digital_nature": "Digital Nature",
+  "ethan_veritas.race.digital_nature.description": "A being that has shed its material dependence and exists as pure information, the threshold shared by True Dragons and Manas. The sole race change of the Ethan Veritas path - everything before it is skill, not blood."
 }

@@ -1,6 +1,6 @@
 package com.timstefan.ethan_veritas.registry.race;
 
-import com.timstefan.ethan_veritas.race.ExampleRace;
+import com.timstefan.ethan_veritas.race.DigitalNatureRace;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
 import io.github.manasmods.manascore.race.api.ManasRace;
@@ -14,7 +14,8 @@ public class AllRaces {
     // not the net.neoforged.neoforge.registries one used for blocks/items in the main mod class.
     public static final DeferredRegister<ManasRace> RACES = DeferredRegister.create(MODID, RaceAPI.getRaceRegistryKey());
 
-    public static final RegistrySupplier<ManasRace> EXAMPLE_RACE = RACES.register("example_race", ExampleRace::new);
+    // The one genuine race change in the Ethan Veritas progression (design doc 2.5).
+    public static final RegistrySupplier<DigitalNatureRace> DIGITAL_NATURE = RACES.register("digital_nature", DigitalNatureRace::new);
 
     public static void register() {
         RACES.register();

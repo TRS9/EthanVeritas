@@ -1,10 +1,8 @@
 package com.timstefan.ethan_veritas.registry.skill;
 
-import com.timstefan.ethan_veritas.ability.skill.common.ExampleCommonSkill;
-import com.timstefan.ethan_veritas.ability.skill.extra.ExampleExtraSkill;
-import com.timstefan.ethan_veritas.ability.skill.intrinsic.ExampleIntrinsicSkill;
-import com.timstefan.ethan_veritas.ability.skill.ultimate.ExampleUltimateSkill;
-import com.timstefan.ethan_veritas.ability.skill.unique.ExampleUniqueSkill;
+import com.timstefan.ethan_veritas.ability.skill.ultimate.AinSophAurSkill;
+import com.timstefan.ethan_veritas.ability.skill.ultimate.ThothSkill;
+import com.timstefan.ethan_veritas.ability.skill.ultimate.YggdrasilSkill;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
@@ -16,11 +14,14 @@ public class AllSkills {
 
     public static final DeferredRegister<ManasSkill> SKILLS = DeferredRegister.create(MODID, SkillAPI.getSkillRegistryKey());
 
-    public static final RegistrySupplier<ManasSkill> EXAMPLE_COMMON = SKILLS.register("example_common", ExampleCommonSkill::new);
-    public static final RegistrySupplier<ManasSkill> EXAMPLE_EXTRA = SKILLS.register("example_extra", ExampleExtraSkill::new);
-    public static final RegistrySupplier<ManasSkill> EXAMPLE_INTRINSIC = SKILLS.register("example_intrinsic", ExampleIntrinsicSkill::new);
-    public static final RegistrySupplier<ManasSkill> EXAMPLE_ULTIMATE = SKILLS.register("example_ultimate", ExampleUltimateSkill::new);
-    public static final RegistrySupplier<ManasSkill> EXAMPLE_UNIQUE = SKILLS.register("example_unique", ExampleUniqueSkill::new);
+    // The Dual Ultimate Skill Awakening pair (design doc 2.2). Entry-tier content
+    // (Analyst, Analytical Appraisal, Thought Acceleration) already exists in the
+    // base mod and is required by these skills instead of being re-registered here.
+    public static final RegistrySupplier<ThothSkill> THOTH = SKILLS.register("thoth", ThothSkill::new);
+    public static final RegistrySupplier<YggdrasilSkill> YGGDRASIL = SKILLS.register("yggdrasil", YggdrasilSkill::new);
+
+    // Digital Nature race intrinsic (design doc 2.5/2.6).
+    public static final RegistrySupplier<AinSophAurSkill> AIN_SOPH_AUR = SKILLS.register("ain_soph_aur", AinSophAurSkill::new);
 
     public static void register() {
         SKILLS.register();
