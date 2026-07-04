@@ -4,14 +4,25 @@
   "item.ethan_veritas.example_item": "Example Item",
 
   "ethan_veritas.skill.thoth": "Logos King: Thoth",
-  "ethan_veritas.skill.thoth.description": "The information half of the Dual Ultimate Skill Awakening. Grants Analytical Appraisal, Thought Acceleration, Magic Sense, Universal Perception and Magic Jamming, and accelerates attacks, mining and spellcasting while active.",
+  "ethan_veritas.skill.thoth.description": "The information half of the Dual Ultimate Skill Awakening, evolved from Analyst. Grants the information suite (Analytical Appraisal, Thought Acceleration, Magic Sense, Universal Perception, Magic Jamming). Toggle: Parallel Computation - accelerated attacks, mining and spellcasting. Actives: Skill Interference silences the existence in your gaze; Universal Detect reveals everything alive around you.",
+  "ethan_veritas.skill.mode.thoth.skill_interference": "Skill Interference",
+  "ethan_veritas.skill.mode.thoth.universal_detect": "Universal Detect",
+
   "ethan_veritas.skill.yggdrasil": "Primal King: Yggdrasil",
-  "ethan_veritas.skill.yggdrasil.description": "The elemental half of the Dual Ultimate Skill Awakening, born from the simultaneous fusion of every Greater Spirit. Grants command of the elemental schools, Multilayer Barrier and Spatial Motion. While active, resist all damage and empower nearby allies with the Sovereign's Dominion.",
+  "ethan_veritas.skill.yggdrasil.description": "The elemental half of the Dual Ultimate Skill Awakening, born from the simultaneous fusion of every Greater Spirit. Grants the elemental suite (the six Manipulations, Multilayer Barrier, Spatial Motion). Toggle: Natural Resistance and the Sovereign's Dominion, inspiring every ally under the aura. Actives: Conceptual Emission detonates fused elements at the point of your gaze; Spatial Authority is a short blink.",
+  "ethan_veritas.skill.mode.yggdrasil.conceptual_emission": "Conceptual Emission",
+  "ethan_veritas.skill.mode.yggdrasil.spatial_authority": "Spatial Authority",
+
   "ethan_veritas.skill.ain_soph_aur": "Information King: Ain Soph Aur",
-  "ethan_veritas.skill.ain_soph_aur.description": "Intrinsic authority of a Digital Nature existence, the convergence of Thoth and Yggdrasil. The Existence Barrier passively deflects a portion of all harm and cannot be dispelled, Parallel Existence turns the first fatal blow aside, and Dimensional Dominion warps the wielder wherever they look. Full mastery of this authority yields Information God: Ain.",
+  "ethan_veritas.skill.ain_soph_aur.description": "Intrinsic authority of a Digital Nature existence, the convergence of Thoth and Yggdrasil. True passives: the Existence Barrier deflects a portion of all harm and cannot be dispelled; Parallel Existence turns the first fatal blow aside. Actives: Dimensional Dominion relocates the wielder within recognized space; Infons Manipulation rewrites information, sealing the target's skills and unwriting the wielder's afflictions. Full mastery evolves this skill into Information God: Ain, replacing it entirely.",
+  "ethan_veritas.skill.mode.ain_soph_aur.dimensional_dominion": "Dimensional Dominion",
+  "ethan_veritas.skill.mode.ain_soph_aur.infons_manipulation": "Infons Manipulation",
+
   "ethan_veritas.skill.ain": "Information God: Ain",
-  "ethan_veritas.skill.ain.description": "The nothing beneath even limitlessness, replacing Ain Soph Aur entirely upon its mastery. While active: the Existence Barrier holds ten times the wielder's life as a standing barrier, and Omniscient Dominion perceives every hostile existence through any cover. Use: Dimensional Dominion relocation. Sneak-use: Absolute Erasure - unwrite whatever is gazed upon, block or being; erasing an existence demands 1.5x its EP, at a magicule price that rises as the gap narrows. Absolute Origin re-declares the wielder's own existence when a fatal blow lands, and Parallel Existence manifests as Body Double.",
+  "ethan_veritas.skill.ain.description": "The nothing beneath even limitlessness, replacing Ain Soph Aur upon its mastery. Toggle: the Existence Barrier holds ten times the wielder's life as a standing barrier, and Omniscient Dominion perceives every hostile existence through any cover. True passive: Absolute Origin re-declares the wielder's own existence when a fatal blow lands. Actives: Dimensional Dominion relocates at will; Absolute Erasure unwrites whatever is gazed upon - blocks vanish without trace, and living existences are erased if the wielder's EP exceeds 1.5x theirs, at a magicule price that rises as the gap narrows. Parallel Existence manifests as Body Double.",
+  "ethan_veritas.skill.mode.ain.dimensional_dominion": "Dimensional Dominion",
+  "ethan_veritas.skill.mode.ain.absolute_erasure": "Absolute Erasure",
 
   "ethan_veritas.race.digital_nature": "Digital Nature",
-  "ethan_veritas.race.digital_nature.description": "A being that has shed its material dependence and exists as pure information, the threshold shared by True Dragons and Manas. The sole race change of the Ethan Veritas path - everything before it is skill, not blood."
+  "ethan_veritas.race.digital_nature.description": "A being that has shed its material dependence and exists as pure information, the threshold shared by True Dragons and Manas. Reachable from any race by a mind carrying an analytical Ultimate Skill and sufficient EP - everything before it is skill, not blood."
 }

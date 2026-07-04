@@ -61,4 +61,17 @@ public final class ProgressionChecks {
                 || SkillUtils.hasSkill(entity, ExtraSkills.SAGE.get())
                 || SkillUtils.hasSkill(entity, AllSkills.THOTH.get());
     }
+
+    /** EP a mind must carry before Digital Nature becomes reachable. */
+    public static final double DIGITAL_NATURE_EP_REQUIREMENT = 5_000_000.0D;
+
+    /**
+     * The Digital Nature gate, checked from every race's evolution list: an
+     * analytical-department ULTIMATE skill (currently Thoth - the base mod ships no
+     * ultimates of its own in 2.0) plus enough EP.
+     */
+    public static boolean canReachDigitalNature(LivingEntity entity) {
+        return SkillUtils.hasSkill(entity, AllSkills.THOTH.get())
+                && TensuraStorages.getExistenceFrom(entity).getEP() >= DIGITAL_NATURE_EP_REQUIREMENT;
+    }
 }
