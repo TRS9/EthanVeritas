@@ -1,5 +1,6 @@
 package com.timstefan.ethan_veritas.registry.skill;
 
+import com.timstefan.ethan_veritas.ability.skill.ultimate.AinSkill;
 import com.timstefan.ethan_veritas.ability.skill.ultimate.AinSophAurSkill;
 import com.timstefan.ethan_veritas.ability.skill.ultimate.ThothSkill;
 import com.timstefan.ethan_veritas.ability.skill.ultimate.YggdrasilSkill;
@@ -20,8 +21,11 @@ public class AllSkills {
     public static final RegistrySupplier<ThothSkill> THOTH = SKILLS.register("thoth", ThothSkill::new);
     public static final RegistrySupplier<YggdrasilSkill> YGGDRASIL = SKILLS.register("yggdrasil", YggdrasilSkill::new);
 
-    // Digital Nature race intrinsic (design doc 2.5/2.6).
+    // Digital Nature race intrinsic (Stage 4).
     public static final RegistrySupplier<AinSophAurSkill> AIN_SOPH_AUR = SKILLS.register("ain_soph_aur", AinSophAurSkill::new);
+
+    // Information God tier (Stage 5) - granted automatically by mastering Ain Soph Aur, never purchasable.
+    public static final RegistrySupplier<AinSkill> AIN = SKILLS.register("ain", AinSkill::new);
 
     public static void register() {
         SKILLS.register();

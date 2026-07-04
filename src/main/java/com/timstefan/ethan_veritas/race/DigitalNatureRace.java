@@ -6,6 +6,7 @@ import io.github.manasmods.manascore.race.api.ManasRace;
 import io.github.manasmods.manascore.race.api.ManasRaceInstance;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
 import io.github.manasmods.tensura.race.TensuraRace;
+import io.github.manasmods.tensura.registry.race.TensuraRaces;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -44,6 +45,12 @@ public class DigitalNatureRace extends TensuraRace {
     @Override
     public Pair<Double, Double> getBaseMagiculeRange() {
         return Pair.of(200_000.0D, 400_000.0D);
+    }
+
+    @Override
+    public List<ManasRace> getPreviousEvolutions(ManasRaceInstance instance, LivingEntity entity) {
+        // Stage 3 -> 4: reached from Human Saint (see HumanSaintRaceMixin for the forward edge).
+        return List.of(TensuraRaces.HUMAN_SAINT.get());
     }
 
     @Override

@@ -1,7 +1,10 @@
 package com.timstefan.ethan_veritas.ability.skill.ultimate;
 
+import com.timstefan.ethan_veritas.registry.skill.AllSkills;
 import io.github.manasmods.manascore.network.api.util.Changeable;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
+import io.github.manasmods.tensura.ability.SkillHelper;
+import io.github.manasmods.tensura.ability.SkillUtils;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -54,6 +57,8 @@ public class AinSophAurSkill extends Skill {
      */
     @Override
     public boolean onTakenDamage(ManasSkillInstance instance, LivingEntity entity, DamageSource source, Changeable<Float> damage) {
+        // Once Ain is acquired, its elevated Existence Barrier takes over entirely - never stack the two.
+        if (SkillUtils.hasSkill(entity, AllSkills.AIN.get())) return true;
         float reduction = instance.isMastered(entity) ? 0.8F : 0.9F;
         damage.set(damage.get() * reduction);
         return true;
@@ -66,6 +71,8 @@ public class AinSophAurSkill extends Skill {
      */
     @Override
     public boolean onDeath(ManasSkillInstance instance, LivingEntity entity, DamageSource source) {
+        // Ain's distributed continuity replaces this once learned.
+        if (SkillUtils.hasSkill(entity, AllSkills.AIN.get())) return true;
         CompoundTag tag = instance.getOrCreateTag();
         long now = entity.level().getGameTime();
         long cooldown = instance.isMastered(entity) ? 3000L : 6000L; // 2.5 or 5 minutes
@@ -76,6 +83,15 @@ public class AinSophAurSkill extends Skill {
         instance.markDirty();
         entity.setHealth(1.0F);
         return false;
+    }
+
+    /**
+     * Stage 5 trigger: full mastery of Ain Soph Aur is the in-game analog of
+     * reverse-engineering ability adjust - it immediately yields Information God: Ain.
+     */
+    @Override
+    public void onSkillMastered(ManasSkillInstance instance, LivingEntity entity) {
+        SkillHelper.learnSkill(entity, AllSkills.AIN.get());
     }
 
     /**
