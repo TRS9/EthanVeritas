@@ -9,6 +9,7 @@ import io.github.manasmods.tensura.ability.SkillUtils;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.registry.effect.TensuraMobEffects;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
+import io.github.manasmods.tensura.registry.skill.ResistanceSkills;
 import io.github.manasmods.tensura.util.EnergyHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -76,6 +77,8 @@ public class AinSophAurSkill extends Skill {
         // dimensional movement comes from the base mod's Spatial Motion instead of a duplicate blink.
         SkillHelper.learnSkill(entity, AllSkills.EXISTENCE_BARRIER.get());
         SkillHelper.learnSkill(entity, ExtraSkills.SPATIAL_MOTION.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.MAGIC_RESISTANCE.get());
+        SkillHelper.learnSkill(entity, ResistanceSkills.SPIRITUAL_ATTACK_RESISTANCE.get());
     }
 
     // ----- Passives -----
@@ -116,7 +119,7 @@ public class AinSophAurSkill extends Skill {
 
     @Override
     public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
-        return mode == MODE_INFONS_MANIPULATION ? 2_000.0D : 0.0D;
+        return mode == MODE_INFONS_MANIPULATION ? 50_000.0D : 0.0D;
     }
 
     @Override
@@ -125,13 +128,18 @@ public class AinSophAurSkill extends Skill {
         if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
         boolean mastered = instance.isMastered(entity);
 
-        // Read/write authority over information: silence and weaken the gazed existence,
-        // and unwrite the wielder's own afflictions.
-        LivingEntity target = AbilityUtils.findLookTarget(entity, 32.0D);
+        // Read/write authority over information, a tier above the Dual Awakening pair:
+        // the gazed existence has its active advantages unwritten (all beneficial
+        // effects stripped), its skills sealed, its body locked, and takes direct
+        // informational damage - while the wielder's own afflictions are unwritten.
+        LivingEntity target = AbilityUtils.findLookTarget(entity, 48.0D);
         if (target != null) {
+            AbilityUtils.removeBeneficialEffects(target);
             target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.SILENCE),
-                    mastered ? 200 : 100, 0, false, true));
-            target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, mastered ? 200 : 100, 0, false, true));
+                    mastered ? 800 : 400, 0, false, true));
+            target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.PARALYSIS),
+                    mastered ? 200 : 100, mastered ? 1 : 0, false, true));
+            target.hurt(entity.damageSources().indirectMagic(entity, entity), mastered ? 600.0F : 300.0F);
         }
         AbilityUtils.removeHarmfulEffects(entity);
         instance.addMasteryPoint(entity);

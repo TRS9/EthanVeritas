@@ -123,7 +123,8 @@ public class YggdrasilSkill extends Skill {
         tag.putInt("ActiveTime", time + 1);
 
         if (time % 40 == 0) {
-            entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, mastered ? 1 : 0, true, false, true));
+            // Natural Resistance at ultimate scale: 40% (60% mastered) plus immunity to fire.
+            entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, mastered ? 2 : 1, true, false, true));
             entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 60, 0, true, false, true));
         }
 
@@ -147,7 +148,7 @@ public class YggdrasilSkill extends Skill {
 
     @Override
     public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
-        return mode == MODE_CONCEPTUAL_EMISSION ? 10_000.0D : 0.0D;
+        return mode == MODE_CONCEPTUAL_EMISSION ? 50_000.0D : 0.0D;
     }
 
     @Override
@@ -156,16 +157,21 @@ public class YggdrasilSkill extends Skill {
         if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
         boolean mastered = instance.isMastered(entity);
 
-        // Fused-element burst centered 6 blocks along the gaze: magic damage + ignition.
-        Vec3 center = entity.getEyePosition().add(entity.getLookAngle().scale(6.0D));
-        float damage = mastered ? 20.0F : 12.0F;
+        // Fused-element burst centered along the gaze, at peer-ultimate scale
+        // (reference: Absolute Severance 700/1400, Nova Break 5000): heavy magic
+        // damage, ignition, and Fragility shredding the survivors' defenses.
+        Vec3 center = entity.getEyePosition().add(entity.getLookAngle().scale(8.0D));
+        float damage = mastered ? 600.0F : 300.0F;
+        double radius = mastered ? 8.0D : 6.0D;
         for (LivingEntity victim : entity.level().getEntitiesOfClass(LivingEntity.class,
-                entity.getBoundingBox().inflate(12.0D),
-                other -> other != entity && !other.isAlliedTo(entity) && other.position().distanceTo(center) <= 5.0D)) {
+                entity.getBoundingBox().inflate(20.0D),
+                other -> other != entity && !other.isAlliedTo(entity) && other.position().distanceTo(center) <= radius)) {
             victim.hurt(entity.damageSources().indirectMagic(entity, entity), damage);
-            victim.setRemainingFireTicks(60);
+            victim.setRemainingFireTicks(100);
+            victim.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.FRAGILITY),
+                    200, mastered ? 1 : 0, false, true));
         }
         instance.addMasteryPoint(entity);
-        instance.setCoolDown(1, mode); // TESTING: was mastered ? 60 : 100
+        instance.setCoolDown(20, mode); // TESTING: was mastered ? 60 : 100
     }
 }

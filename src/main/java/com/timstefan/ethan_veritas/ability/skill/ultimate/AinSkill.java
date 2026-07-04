@@ -165,8 +165,6 @@ public class AinSkill extends Skill {
     @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int keyNumber, int mode) {
         if (mode != MODE_ABSOLUTE_ERASURE) return;
-        boolean mastered = instance.isMastered(entity);
-        int cooldown = 20; // TESTING: was mastered ? 3000 : 6000
 
         LivingEntity target = AbilityUtils.findLookTarget(entity, ERASURE_RANGE);
         if (target != null) {
@@ -182,7 +180,11 @@ public class AinSkill extends Skill {
                         (SoundEvent) TensuraSoundEvents.GENERIC_CAST_FAIL.get(), TensuraSkill.ABILITY_SOUND, 1.0F, 1.0F);
                 return;
             }
-            double cost = ownEP <= 0.0D ? 0.0D : (1.5D * targetEP * targetEP) / ownEP;
+            // The heavier the existence, the steeper the price and the longer the world
+            // takes to accept the deletion: cost = half the target's EP in magicules,
+            // cooldown scales with target EP.
+            double cost = targetEP * 0.5D;
+            int cooldown = (int) Math.min(20L, Math.max(1L, (long) (targetEP / 50_000.0D))); // TESTING cap 20: real cap 6000 (300s), scale targetEP/1000
             if (EnergyHelper.isOutOfEnergy(entity, 0.0D, cost)) return; // checks, deducts, and messages in one step
 
             // A real kill so EP/soul/awakening rewards credit the wielder - but no drops:
@@ -202,12 +204,12 @@ public class AinSkill extends Skill {
             return;
         }
 
-        // Nothing living in the gaze: unwrite the block instead, droplessly.
+        // Nothing living in the gaze: unwrite the block instead - minimal price, no cooldown.
         HitResult hit = entity.pick(ERASURE_RANGE, 0.0F, false);
         if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult blockHit) {
+            if (EnergyHelper.isOutOfEnergy(entity, 0.0D, 100.0D)) return;
             if (entity.level().destroyBlock(blockHit.getBlockPos(), false, entity)) {
                 instance.addMasteryPoint(entity);
-                instance.setCoolDown(cooldown, mode);
             }
         }
     }

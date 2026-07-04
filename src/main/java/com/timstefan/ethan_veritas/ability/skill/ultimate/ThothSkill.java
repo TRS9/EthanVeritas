@@ -45,6 +45,7 @@ public class ThothSkill extends Skill {
     private static final ResourceLocation ATTACK_SPEED = ResourceLocation.fromNamespaceAndPath(MODID, "thoth_attack_speed");
     private static final ResourceLocation BREAK_SPEED = ResourceLocation.fromNamespaceAndPath(MODID, "thoth_break_speed");
     private static final ResourceLocation CHANT_SPEED = ResourceLocation.fromNamespaceAndPath(MODID, "thoth_chant_speed");
+    private static final ResourceLocation MOVE_SPEED = ResourceLocation.fromNamespaceAndPath(MODID, "thoth_move_speed");
 
     private static final int MODE_SKILL_INTERFERENCE = 0;
     private static final int MODE_UNIVERSAL_DETECT = 1;
@@ -103,10 +104,13 @@ public class ThothSkill extends Skill {
     @Override
     public void onToggleOn(ManasSkillInstance instance, LivingEntity entity) {
         grantInformationSuite(entity);
+        // Parallel Computation at ultimate scale (reference: other addon ultimates double
+        // casting speed and stack reaction buffs).
         boolean mastered = instance.isMastered(entity);
-        addModifier(entity.getAttribute(Attributes.ATTACK_SPEED), ATTACK_SPEED, mastered ? 0.40D : 0.20D);
-        addModifier(entity.getAttribute(Attributes.BLOCK_BREAK_SPEED), BREAK_SPEED, mastered ? 0.40D : 0.20D);
-        addModifier(entity.getAttribute(TensuraAttributes.CHANT_SPEED), CHANT_SPEED, mastered ? 0.50D : 0.25D);
+        addModifier(entity.getAttribute(Attributes.ATTACK_SPEED), ATTACK_SPEED, mastered ? 0.80D : 0.40D);
+        addModifier(entity.getAttribute(Attributes.BLOCK_BREAK_SPEED), BREAK_SPEED, mastered ? 0.80D : 0.40D);
+        addModifier(entity.getAttribute(TensuraAttributes.CHANT_SPEED), CHANT_SPEED, mastered ? 1.00D : 0.50D);
+        addModifier(entity.getAttribute(Attributes.MOVEMENT_SPEED), MOVE_SPEED, mastered ? 0.20D : 0.10D);
     }
 
     @Override
@@ -165,8 +169,8 @@ public class ThothSkill extends Skill {
     @Override
     public double getMagiculeCost(LivingEntity entity, ManasSkillInstance instance, int mode) {
         return switch (mode) {
-            case MODE_SKILL_INTERFERENCE -> 5_000.0D;
-            case MODE_UNIVERSAL_DETECT -> 1_000.0D;
+            case MODE_SKILL_INTERFERENCE -> 25_000.0D;
+            case MODE_UNIVERSAL_DETECT -> 5_000.0D;
             default -> 0.0D;
         };
     }
@@ -184,17 +188,19 @@ public class ThothSkill extends Skill {
                     return;
                 }
                 if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
+                // Ultimate-scale interference: a long silence plus crippled attacks.
                 target.addEffect(new MobEffectInstance(TensuraMobEffects.getReference(TensuraMobEffects.SILENCE),
-                        mastered ? 320 : 160, 0, false, true));
+                        mastered ? 600 : 300, 0, false, true));
+                target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, mastered ? 600 : 300, 1, false, true));
                 instance.addMasteryPoint(entity);
                 instance.setCoolDown(1, mode); // TESTING: was mastered ? 100 : 160
             }
             case MODE_UNIVERSAL_DETECT -> {
-                // Radar ping: everything alive within 64 blocks glows through walls for 15s. 10s CD.
+                // Radar ping: everything alive within 64 blocks glows through walls for 30s. 10s CD.
                 if (EnergyHelper.isOutOfEnergy(entity, instance, mode)) return;
                 for (LivingEntity revealed : entity.level().getEntitiesOfClass(LivingEntity.class,
                         entity.getBoundingBox().inflate(64.0D), other -> other != entity && other.isAlive())) {
-                    revealed.addEffect(new MobEffectInstance(MobEffects.GLOWING, 300, 0, false, false));
+                    revealed.addEffect(new MobEffectInstance(MobEffects.GLOWING, 600, 0, false, false));
                 }
                 instance.addMasteryPoint(entity);
                 instance.setCoolDown(1, mode); // TESTING: was 200
@@ -217,5 +223,7 @@ public class ThothSkill extends Skill {
         if (breakSpeed != null) breakSpeed.removeModifier(BREAK_SPEED);
         AttributeInstance chantSpeed = entity.getAttribute(TensuraAttributes.CHANT_SPEED);
         if (chantSpeed != null) chantSpeed.removeModifier(CHANT_SPEED);
+        AttributeInstance moveSpeed = entity.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (moveSpeed != null) moveSpeed.removeModifier(MOVE_SPEED);
     }
 }

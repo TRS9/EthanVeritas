@@ -44,4 +44,13 @@ public final class AbilityUtils {
                 .toList();
         harmful.forEach(entity::removeEffect);
     }
+
+    /** Unwrites every beneficial effect - Infons-level removal of a target's active advantages. */
+    public static void removeBeneficialEffects(LivingEntity entity) {
+        List<Holder<MobEffect>> beneficial = entity.getActiveEffects().stream()
+                .map(MobEffectInstance::getEffect)
+                .filter(effect -> effect.value().isBeneficial())
+                .toList();
+        beneficial.forEach(entity::removeEffect);
+    }
 }
